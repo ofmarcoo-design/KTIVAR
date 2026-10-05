@@ -7,11 +7,9 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0"
+    "express": "5.1.0"
   }
 }
