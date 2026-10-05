@@ -188,3 +188,19 @@ autorizado. Funções privilegiadas verificam a autorização antes de agir; ano
 e usuário sem `plate_access` não conseguem consultar ou executar esses fluxos.
 `scripts/verify-commercial.js` exercita o fluxo com o Supabase real e imprime
 IDs exatos dos registros temporários para limpeza administrativa.
+
+### CRM, atividades e timeline
+
+O Kanban usa as etapas configuradas no banco, com drag-and-drop e “Mover para”
+para toque e teclado. Negociação guarda cliente, estimativa, responsável,
+etapa, resultado e tags. Perda exige motivo; etapa de retorno exige ação/data.
+Marcar ganha nunca cria venda. O marcador de compra usa vendas confirmadas.
+
+Próxima ação tem uma única fonte: atividade vinculada com `isNextAction`.
+Editar/concluir essa atividade invalida a revisão da negociação, evitando que
+um formulário antigo regrave dados antigos. Conclusão retira a pendência;
+fechar negociação desativa a próxima ação pendente sem apagar histórico.
+As listas incluem Atrasadas/Hoje/Futuras/Concluídas, usando datas de Brasília.
+A timeline reúne auditoria, atividade, venda, negociação e destino, paginada
+com IDs únicos. Notas e timeline permanecem privadas.
+`scripts/verify-crm.js` valida os fluxos reais e imprime IDs de teste para limpeza.

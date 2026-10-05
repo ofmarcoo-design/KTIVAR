@@ -39,6 +39,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
       return res.end(JSON.stringify(!code || code === `eq.${plate.code}` ? [plate] : []));
     }
     if(url.pathname === '/auth/v1/logout') {res.statusCode=204;return res.end();}
+    if(url.pathname === '/rest/v1/rpc/save_deal') {res.statusCode=409;return res.end(JSON.stringify({code:'PT409',message:'Opportunity changed'}));}
     res.end('[]');
   });
   await new Promise(resolve=>database.listen(0,'127.0.0.1',resolve));
@@ -75,6 +76,9 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   const cookie=saved.map(value=>value.split(';')[0]).join('; ');
   assert.equal((await request('/plates',{cookie})).status,200);
   assert.equal((await request('/api/plates',{cookie})).status,200);
+  const staleDeal=await request(`/api/workspace/deals/${user.id}`,{method:'PATCH',cookie,body:{clientId:user.id,name:'Deal',stageId:user.id,result:'open',revision:0,tags:[]}});
+  assert.equal(staleDeal.status,409);
+  assert.match((await staleDeal.json()).error,/Reabra/);
   const host = 'plates.example.test';
   const permanent = `https://${host}/r/PL-000143`;
   const detail = await (await request('/api/plates/PL-000143', {cookie,host})).json();

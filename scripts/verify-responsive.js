@@ -21,7 +21,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
  app.get('/api/workspace/operators',(req,res)=>res.json([{id:client.id,email:'operator@example.test'}]));
  app.get('/api/workspace/catalogs/:kind',(req,res)=>res.json([{id:client.id,name:'Opção longa '.repeat(8),enabled:true,revision:0,color:'#667085',position:0}]));
  app.get('/api/workspace/clients/:id/profile',(req,res)=>res.json(client));
- for(const type of ['clients','products','sales'])app.get('/api/workspace/'+type,(req,res)=>res.json({items:type==='clients'?[client]:type==='products'?[product]:[],hasMore:false}));
+ const deal={id:client.id,clientId:client.id,name:'Negociação '.repeat(12),estimatedCents:40000,stageId:client.id,result:'open',revision:0,client:{...client,sales:[]},activities:[],deal_tags:[]};
+ const activity={id:client.id,clientId:client.id,dealId:deal.id,typeId:client.id,name:'Atividade '.repeat(25),note:'Observação longa '.repeat(100),dueDate:'2026-10-06',revision:0,enabled:true,client,type:{name:'Follow-up'}};
+ app.get('/api/workspace/clients/:id/timeline',(req,res)=>res.json({items:[{id:'event',createdAt:plate.createdAt,kind:'deals',description:'Cadastro: name',actorEmail:'operator@example.test',metadata:{}}],hasMore:false}));
+ for(const type of ['clients','products','sales','deals','activities'])app.get('/api/workspace/'+type,(req,res)=>res.json({items:type==='clients'?[client]:type==='products'?[product]:type==='deals'?[deal]:type==='activities'?[activity]:[],hasMore:false}));
  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));let browser;
  const failures=[];
  try{
@@ -36,14 +39,14 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
    await page.locator('#view-destination').click();await check('destination');await page.locator('#destination-cancel').click();await page.locator('#view-close').click();
    await page.locator('#new').click();await page.locator('#editor[open]').waitFor();await check('editor');await page.locator('#add-client').click();await check('client');await page.locator('#reference-cancel').click();await page.locator('#editor [data-close]').first().click();
    await page.locator('#configure-statuses').click();await page.locator('.status-row').waitFor();await check('status manager');await page.locator('#status-close').click();
-   for(const module of ['clients','products','sales','config']){
+   for(const module of ['clients','products','sales','deals','activities','config']){
     await page.goto(`http://127.0.0.1:${server.address().port}/manage?module=${module}`);await page.locator('#module-title').waitFor();await check(module+' list');
     await page.locator('#create').click();await page.locator('#record-editor[open]').waitFor();await check(module+' form');
     if(module==='sales'){await page.locator('#add-item').click();await page.locator('.sale-item').nth(1).waitFor();await check('multiple sale items');}
     await page.locator('#editor-close').click();
     if(module==='clients'){await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#profile[open]').waitFor();await check('client profile');await page.locator('#profile-close').click();}
    }
-   console.log(`PASS responsive: ${width}×${height}, login/list/QR/edit/destination/client/status.`);
+   console.log(`PASS responsive: ${width}×${height}, login/plates/QR/forms/clients/sales/CRM/activities/config.`);
   }
   assert.deepEqual(failures,[],'Browser JavaScript errors');
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}

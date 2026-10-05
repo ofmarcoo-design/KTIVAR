@@ -57,8 +57,8 @@ async function supabase(endpoint, { token, method = 'GET', body, prefer } = {}) 
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const status = ['23505','40001'].includes(data?.code) ? 409 : ['23503', '23514', '22P02', '22007', '22008', '23502'].includes(data?.code) ? 400 : response.status;
-    const message = status === 409 ? 'Este identificador já está cadastrado.' : status === 400 ? 'Confira os dados e os vínculos informados.' : status === 401 ? 'E-mail ou senha inválidos, ou sessão expirada.' : status === 403 ? 'Acesso não autorizado.' : 'Não foi possível concluir a operação no banco.';
+    const status = ['23505','PT409','40001','40P01'].includes(data?.code) ? 409 : ['23503', '23514', '22P02', '22007', '22008', '23502'].includes(data?.code) ? 400 : response.status;
+    const message = status === 409 ? (data?.code==='23505'?'Este identificador já está cadastrado.':'O registro mudou. Reabra antes de salvar.') : status === 400 ? 'Confira os dados e os vínculos informados.' : status === 401 ? 'E-mail ou senha inválidos, ou sessão expirada.' : status === 403 ? 'Acesso não autorizado.' : 'Não foi possível concluir a operação no banco.';
     throw Object.assign(new Error(message), { status: status >= 500 ? 503 : status });
   }
   return data;
@@ -187,6 +187,7 @@ function registerPlates(app) {
   api.use(authenticate);
   require('./statuses').registerStatuses(api, supabase);
   require('./workspace').registerWorkspace(api, supabase);
+  require('./crm').registerCRM(api, supabase);
   api.get('/session', (req, res) => res.json({ email: req.authUser.email }));
   api.post('/logout', async (req, res, next) => {
     try {
