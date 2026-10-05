@@ -134,3 +134,14 @@ permite desenvolvimento local; nunca execute reset no projeto remoto.
 com funções de Auth equivalentes para verificar constraints, triggers e RLS.
 Isso complementa testes HTTP e não troca o Supabase de produção.
 `.env.example` lista a configuração sem credenciais.
+
+### Acessos de placas
+
+O lookup público usa uma RPC limitada a resolver código/atividade/destino.
+Essa mesma chamada registra acesso e incrementa o diário em transação,
+sem uma segunda ida ao Supabase. HEAD e placas inválidas/inativas não contam.
+Falhas/contensão de analytics não bloqueiam o redirect e são registradas no log.
+Métricas são acessos registrados, não pessoas ou garantia de leitura física.
+O painel mostra Hoje, 7/30 dias de calendário e Total no fuso de Brasília.
+Eventos individuais são retidos por 30 dias; diário preserva Total.
+Não se coletam IP, User-Agent, cookies de tracking ou geolocalização.

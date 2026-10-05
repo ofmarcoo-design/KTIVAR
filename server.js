@@ -22,11 +22,7 @@ app.get('/r/:code', async (req, res) => {
   }
 
   try {
-    const url = new URL(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/plates`);
-    url.searchParams.set('code', `eq.${req.params.code}`);
-    url.searchParams.set('select', 'code,active,destinationUrl');
-    url.searchParams.set('limit', '1');
-
+    const url = new URL(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/resolve_plate_access`);
     const headers = { apikey: supabaseKey };
     // Legacy anon JWTs need Bearer; modern publishable keys are not JWTs.
     if (!supabaseKey.startsWith('sb_publishable_')) {
@@ -34,7 +30,9 @@ app.get('/r/:code', async (req, res) => {
     }
 
     const response = await fetch(url, {
-      headers,
+      method:'POST',
+      headers:{...headers,'Content-Type':'application/json'},
+      body:JSON.stringify({p_code:req.params.code,p_record:req.method==='GET'}),
       cache: 'no-store',
       signal: AbortSignal.timeout(10000)
     });
@@ -56,6 +54,7 @@ app.get('/r/:code', async (req, res) => {
       return res.status(503).send('Destino da placa indisponível.');
     }
 
+    if (req.method==='GET' && plate.recorded===false) console.warn('Plate access analytics unavailable');
     return res.redirect(302, destination.href);
   } catch (error) {
     console.error('Plate redirect lookup failed:', error.message);

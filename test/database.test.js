@@ -33,3 +33,31 @@ test('migrations from empty database: private history, immutable code, atomic wr
   await assert.rejects(db.query('select "clientId" from plates'));
   await assert.rejects(db.query('select * from plate_destination_history'));
 });
+
+test('analytics counts valid access only, protects private events, survives retention and fails open',async t=>{
+ const db=await database();t.after(()=>db.close());
+ const actor='00000000-0000-4000-8000-000000000003';
+ await db.exec(`insert into auth.users values('${actor}','analytics@example.test');insert into plate_access("userId") values('${actor}');`);
+ const client=(await db.query("insert into clients(name) values('Analytics') returning id")).rows[0].id;
+ const code=(await db.query('insert into plates("clientId",status,"destinationUrl") values($1,$2,$3) returning code',[client,'active','https://example.test'])).rows[0].code;
+ await db.exec('set role anon');
+ assert.equal((await db.query('select * from resolve_plate_access($1,true)',[code])).rows[0].recorded,true);
+ assert.equal((await db.query('select * from resolve_plate_access($1,false)',[code])).rows[0].recorded,false);
+ assert.equal((await db.query("select * from resolve_plate_access('PL-999999',true)")).rows.length,0);
+ await assert.rejects(db.query('select * from plate_scan_events'));
+ await assert.rejects(db.query('insert into plate_scan_daily("plateCode",day,count) values($1,current_date,999)',[code]));
+ await db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${actor}',false);`);
+ let summary=(await db.query('select plate_scan_summary($1) as stats',[code])).rows[0].stats;
+ assert.deepEqual([summary.today,summary.days7,summary.days30,summary.total],[1,1,1,1]);
+ await db.exec('reset role');
+ await db.query('update plate_scan_events set "occurredAt"=now()-interval \'31 days\'');
+ await db.query('select private.prune_plate_scans()');
+ assert.equal((await db.query('select count(*)::int n from plate_scan_events')).rows[0].n,0);
+ assert.equal((await db.query('select sum(count)::int n from plate_scan_daily')).rows[0].n,1);
+ await db.exec(`create function private.reject_scan_test() returns trigger language plpgsql as $$begin raise exception 'scan unavailable';end$$;create trigger reject_scan_test before insert on plate_scan_daily for each row execute function private.reject_scan_test();set role anon;`);
+ const resolved=(await db.query('select * from resolve_plate_access($1,true)',[code])).rows[0];
+ assert.equal(resolved.destinationUrl,'https://example.test');assert.equal(resolved.recorded,false);
+ await db.exec('reset role');assert.equal((await db.query('select count(*)::int n from plate_scan_events')).rows[0].n,0);
+ await db.query('update plates set status=$1 where code=$2',['inactive',code]);
+ await db.exec('set role anon');assert.equal((await db.query('select * from resolve_plate_access($1,true)',[code])).rows[0].recorded,false);
+});

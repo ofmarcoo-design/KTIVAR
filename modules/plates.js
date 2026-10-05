@@ -229,6 +229,11 @@ function registerPlates(app) {
       res.send(svg);
     } catch (error) { next(error); }
   });
+  api.get('/plates/:code/analytics', async(req,res,next)=>{
+    if(!/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({error:'Placa não encontrada.'});
+    try {res.json(await supabase('/rest/v1/rpc/plate_scan_summary',{token:req.supabaseToken,method:'POST',body:{p_code:req.params.code}}));}
+    catch(error){next(error);}
+  });
   api.get('/plates/:code/destination-history', async (req, res, next) => {
     if (!/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
     try {

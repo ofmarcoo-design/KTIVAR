@@ -9,12 +9,12 @@ test('public QR route resolves current destination and handles unavailable plate
   let rows = [{ code: 'PL-000143', active: true, destinationUrl: 'https://example.com/first' }];
   let databaseStatus = 200;
   let lookupCount = 0;
-  const database = http.createServer((req, res) => {
+  const database = http.createServer(async (req, res) => {
     lookupCount++;
     const url = new URL(req.url, 'http://localhost');
-    assert.equal(url.pathname, '/rest/v1/plates');
-    assert.equal(url.searchParams.get('code'), 'eq.PL-000143');
-    assert.equal(url.searchParams.get('select'), 'code,active,destinationUrl');
+    assert.equal(url.pathname, '/rest/v1/rpc/resolve_plate_access');
+    let body='';for await(const part of req)body+=part;
+    const input=JSON.parse(body);assert.equal(input.p_code,'PL-000143');assert.equal(typeof input.p_record,'boolean');
     assert.equal(req.headers.apikey, 'sb_publishable_test');
     assert.equal(req.headers.authorization, undefined);
     res.writeHead(databaseStatus, { 'Content-Type': 'application/json' });

@@ -115,6 +115,7 @@ async function view(code) {
       $('#details').append(dt, dd);
     }
     $('#viewer').showModal();
+    loadAnalytics(code);
     loadHistory().catch(error=>{ $('#history-message').textContent=error.message; });
   } catch (error) { showError(error); }
 }
@@ -180,3 +181,14 @@ $('#destination-form').addEventListener('submit',async event=>{
   } catch(error) { $('#destination-message').textContent=error.message; }
   finally {button.disabled=false;}
 });
+
+async function loadAnalytics(code) {
+  for(const key of ['today','7','30','total']) $(`#scan-${key}`).textContent='—';
+  $('#scan-message').textContent='Carregando acessos…';
+  try {
+    const data=await api(`/plates/${code}/analytics`);
+    if(viewed!==code)return;
+    for(const [key,value] of [['today',data.today],['7',data.days7],['30',data.days30],['total',data.total]]) $(`#scan-${key}`).textContent=new Intl.NumberFormat('pt-BR').format(value);
+    $('#scan-message').textContent='Acessos registrados · horário de Brasília. Inclui acessos repetidos e automáticos; não são visitantes únicos.';
+  } catch(error) {if(viewed===code)$('#scan-message').textContent=error.message;}
+}
