@@ -113,13 +113,13 @@ function validateDestination(value, host) {
   return text;
 }
 
-function validatePlate(body) {
+function validatePlate(body, allowedStatuses = statuses) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Dados inválidos.');
   const clientId = body.clientId;
   const productId = body.productId || null;
   if (!uuid.test(clientId || '')) throw new Error('Selecione um cliente.');
   if (productId && !uuid.test(productId)) throw new Error('Produto inválido.');
-  if (!statuses.includes(body.status)) throw new Error('Selecione o status.');
+  if (!allowedStatuses.includes(body.status)) throw new Error('Selecione o status.');
   if (!purposes.includes(body.purpose)) throw new Error('Selecione a finalidade.');
   const destinationUrl = validateDestination(body.destinationUrl);
   const optionalText = (value, limit) => {
@@ -184,6 +184,7 @@ function registerPlates(app) {
     }
   });
   api.use(authenticate);
+  require('./statuses').registerStatuses(api, supabase);
   api.get('/session', (req, res) => res.json({ email: req.authUser.email }));
   api.post('/logout', async (req, res, next) => {
     try {
@@ -199,6 +200,12 @@ function registerPlates(app) {
     if (req.query.search) {
       const search = String(req.query.search).trim().replace(/[^a-zA-Z0-9-]/g, '').slice(0, 20);
       if (search) query.set('code', `ilike.*${search}*`);
+    }
+    for (const field of ['clientId', 'productId', 'status']) {
+      if (!req.query[field]) continue;
+      const value = String(req.query[field]);
+      if (field === 'status' ? !/^[a-z][a-z0-9_-]{0,63}$/.test(value) : !uuid.test(value)) return res.status(400).json({ error: 'Filtro inválido.' });
+      query.set(field, `eq.${value}`);
     }
     try {
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
@@ -257,7 +264,10 @@ function registerPlates(app) {
   for (const method of ['post', 'patch']) api[method](method === 'post' ? '/plates' : '/plates/:code', async (req, res, next) => {
     if (method === 'patch' && !/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
     let values;
-    try { values = validatePlate(req.body); validateDestination(values.destinationUrl,req.get('host')); } catch (error) { return res.status(400).json({ error: error.message }); }
+    try {
+      const available = await supabase('/rest/v1/plate_statuses?select=key', {token:req.supabaseToken});
+      values = validatePlate(req.body, available.map(item=>item.key)); validateDestination(values.destinationUrl,req.get('host'));
+    } catch (error) { if(error.status) return next(error); return res.status(400).json({ error: error.message }); }
     try {
       const query = new URLSearchParams({ select: 'code' });
       if (method === 'patch') {

@@ -145,3 +145,22 @@ Métricas são acessos registrados, não pessoas ou garantia de leitura física.
 O painel mostra Hoje, 7/30 dias de calendário e Total no fuso de Brasília.
 Eventos individuais são retidos por 30 dias; diário preserva Total.
 Não se coletam IP, User-Agent, cookies de tracking ou geolocalização.
+
+### Operação, status e NFC
+
+Status são configuráveis em “Configurar status”: nome, cor, ordem e
+Disponível. A chave e o ID permanecem estáveis. Opções desativadas continuam
+legíveis nas placas existentes. Habilitar/desabilitar redirect é uma ação
+separada e confirmada que sincroniza `active` no banco, com auditoria.
+O seed inicial cobre configuração, produção, entrega, ativa e inativa.
+A listagem inclui filtros de status, cliente e produto com busca.
+“Copiar URL para NFC” usa a mesma URL permanente do QR; não acessa hardware.
+A tabela `audit_log` registra autoria e campos alterados, sem copiar contatos
+ou identificadores NFC. Somente usuários autorizados podem lê-la; a aplicação
+não pode inserir, editar ou excluir registros de auditoria.
+
+`scripts/verify-responsive.js` exercita telas a 320/390/768/1440px e landscape,
+com nomes e URLs longos. Requer Playwright instalado como ferramenta de
+ desenvolvimento e seu Chromium. `PLAYWRIGHT_MODULE_PATH` e
+`CHROMIUM_EXECUTABLE_PATH` permitem usar instalações externas, sem acrescentar
+ferramentas de navegador ao runtime de produção.

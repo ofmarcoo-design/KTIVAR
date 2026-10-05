@@ -61,3 +61,22 @@ test('analytics counts valid access only, protects private events, survives rete
  await db.query('update plates set status=$1 where code=$2',['inactive',code]);
  await db.exec('set role anon');assert.equal((await db.query('select * from resolve_plate_access($1,true)',[code])).rows[0].recorded,false);
 });
+
+test('configurable status preserves identity, availability, redirect consistency and private audit',async t=>{
+ const db=await database();t.after(()=>db.close());const actor='00000000-0000-4000-8000-000000000001';
+ await db.exec(`insert into auth.users values('${actor}','operator@test.invalid');insert into plate_access("userId") values('${actor}');insert into clients(id,name) values('${actor}','Cliente');set role authenticated;select set_config('request.jwt.claim.sub','${actor}',false);`);
+ const status=(await db.query("insert into plate_statuses(key,name,redirects) values('custom','Personalizado',false) returning id")).rows[0];
+ const plate=(await db.query('insert into plates("clientId",status,"destinationUrl") values($1,$2,$3) returning code',[actor,'custom','https://example.test'])).rows[0];
+ await db.query('update plate_statuses set name=$1,position=99 where id=$2',['Ativa apenas no nome',status.id]);
+ assert.equal((await db.query('select active from plates where code=$1',[plate.code])).rows[0].active,false);
+ await db.query('update plate_statuses set redirects=true where id=$1',[status.id]);
+ assert.equal((await db.query('select active from plates where code=$1',[plate.code])).rows[0].active,true);
+ await db.query('update plate_statuses set enabled=false where id=$1',[status.id]);
+ await assert.rejects(db.query('insert into plates("clientId",status,"destinationUrl") values($1,$2,$3)',[actor,'custom','https://example.test']));
+ await db.query('update plates set "installationLocation"=$1 where code=$2',['Balcão',plate.code]);
+ await assert.rejects(db.query('update plate_statuses set key=$1 where id=$2',['changed',status.id]));
+ await db.query('update plates set status=$1 where code=$2',['inactive',plate.code]);
+ const audit=(await db.query("select * from audit_log where entity='plates' and transition->>'statusAfter'='inactive'")).rows[0];assert.equal(audit.actorId,actor);assert.equal(audit.transition.statusBefore,'custom');
+ await assert.rejects(db.query('delete from audit_log'));await assert.rejects(db.query("insert into audit_log(entity,\"entityId\",operation,\"changedFields\") values('plates','fake','UPDATE','{}')"));
+ await db.exec('reset role;set role anon');await assert.rejects(db.query('select * from plate_statuses'));await assert.rejects(db.query('select * from audit_log'));
+});

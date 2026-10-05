@@ -1,7 +1,9 @@
 const $ = selector => document.querySelector(selector);
 const form = $('#plate-form');
 const editor = $('#editor');
-const statusLabels = { pending: 'Pendente', active: 'Ativa', inactive: 'Inativa' };
+let statusLabels = {};
+let plateStatuses = [];
+let editingStatus = null;
 const purposeLabels = { google_review: 'Avaliação Google', pix: 'Pix', wifi: 'Wi-Fi', link_bio: 'Link na bio', other: 'Outra' };
 let page = 0;
 let editing = null;
@@ -30,7 +32,8 @@ async function load() {
   const id = ++listRequest;
   $('#message').textContent = 'Carregando placas…';
   try {
-    const data = await api(`/plates?page=${page}&search=${encodeURIComponent($('#search').value)}`);
+    const filters = new URLSearchParams({page,search:$('#search').value,status:$('#filter-status').value,clientId:$('#filter-client').value,productId:$('#filter-product').value});
+    const data = await api(`/plates?${filters}`);
     if (id !== listRequest) return;
     $('#rows').replaceChildren();
     for (const plate of data.items) {
@@ -78,6 +81,7 @@ async function openEditor(code = null) {
       $('#dates').textContent = `Criada em ${date(plate.createdAt)} · Atualizada em ${date(plate.updatedAt)}`;
     }
     await Promise.all([references('clients', plate?.client), references('products', plate?.product)]);
+    fillStatusSelect(form.elements.status, plate?.status);
     editor.showModal();
   } catch (error) { showError(error); }
 }
@@ -99,6 +103,8 @@ async function view(code) {
     const plate = await api(`/plates/${code}`); viewed = code; viewedPlate=plate; historyPage=0;
     $('#view-title').textContent = plate.code; $('#details').replaceChildren();
     $('#qr-code').textContent = plate.code;
+    $('.nfc-url').hidden = true;
+    $('#nfc-url').value = plate.permanentUrl;
     $('#qr-image').alt = `QR da placa ${plate.code}`;
     $('#qr-message').textContent = 'Carregando QR…';
     const qrPath = `/api/plates/${encodeURIComponent(plate.code)}/qr.svg`;
@@ -150,7 +156,7 @@ $('#reference-form').addEventListener('submit', async event => {
 });
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
-load();
+loadStatuses().then(load).catch(showError);
 
 async function loadHistory() {
   $('#history-message').textContent='Carregando histórico…';
@@ -192,3 +198,46 @@ async function loadAnalytics(code) {
     $('#scan-message').textContent='Acessos registrados · horário de Brasília. Inclui acessos repetidos e automáticos; não são visitantes únicos.';
   } catch(error) {if(viewed===code)$('#scan-message').textContent=error.message;}
 }
+
+function fillStatusSelect(select,selected,all=false) {
+ const previous=selected||select.value;
+ select.replaceChildren();
+ if(all){const option=new Option('Todos','');select.append(option);}
+ for(const item of plateStatuses)if(all||item.enabled||item.key===previous)select.append(new Option(`${item.name}${item.enabled?'':' (indisponível)'}`,item.key));
+ if([...select.options].some(o=>o.value===previous))select.value=previous;
+}
+async function loadStatuses(){
+ plateStatuses=await api('/plate-statuses');statusLabels=Object.fromEntries(plateStatuses.map(s=>[s.key,s.name]));
+ fillStatusSelect($('#filter-status'),null,true);fillStatusSelect(form.elements.status);
+}
+for(const id of ['status','client','product'])$('#filter-'+id).addEventListener('change',()=>{page=0;load();});
+async function filterReferences(type){
+ const singular=type==='clients'?'client':'product';const select=$('#filter-'+singular);const previous=select.value;
+ const rows=await api(`/${type}?search=${encodeURIComponent($('#filter-'+singular+'-search').value)}`);
+ select.replaceChildren(new Option('Todos',''));for(const row of rows)select.append(new Option(row.name,row.id));
+ select.value=rows.some(row=>row.id===previous)?previous:'';
+ page=0;load();
+}
+for(const type of ['clients','products'])$('#filter-'+(type==='clients'?'client':'product')+'-search').addEventListener('input',debounce(()=>filterReferences(type).catch(showError)));
+$('#copy-nfc').addEventListener('click',async()=>{
+ const url=viewedPlate.permanentUrl;
+ try{await navigator.clipboard.writeText(url);$('#qr-message').textContent='URL permanente copiada para NFC.';}
+ catch{$('.nfc-url').hidden=false;$('#nfc-url').value=url;$('#nfc-url').focus();$('#nfc-url').select();$('#qr-message').textContent='Selecione a URL acima e copie para a tag NFC.';}
+});
+function newStatus(){editingStatus=null;$('#status-form').reset();$('#status-title').textContent='Novo status';$('#status-redirect-field').hidden=false;$('#status-message').textContent='';}
+async function renderStatuses(){
+ await loadStatuses();$('#status-list').replaceChildren();
+ for(const item of plateStatuses){
+  const row=document.createElement('div');row.className='status-row';const title=document.createElement('strong');title.textContent=`${item.position}. ${item.name} · ${item.enabled?'disponível':'indisponível'} · redirect ${item.redirects?'habilitado':'desabilitado'}`;
+  row.append(title,action('Editar',()=>{editingStatus=item.id;$('#status-title').textContent='Editar status';for(const key of ['name','color','position','enabled'])$('#status-form').elements[key].value=String(item[key]);$('#status-redirect-field').hidden=true;$('#status-message').textContent='';}),action(item.redirects?'Desabilitar redirect':'Habilitar redirect',async()=>{
+   if(!confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`))return;
+   try{await api(`/plate-statuses/${item.id}/redirect`,{method:'PATCH',body:JSON.stringify({redirects:!item.redirects,confirmed:true})});await renderStatuses();await load();}catch(e){$('#status-message').textContent=e.message;}
+  }));$('#status-list').append(row);
+ }
+}
+$('#configure-statuses').addEventListener('click',async()=>{newStatus();$('#status-manager').showModal();try{await renderStatuses();}catch(e){$('#status-message').textContent=e.message;}});
+$('#status-close').addEventListener('click',()=>$('#status-manager').close());$('#status-new').addEventListener('click',newStatus);
+$('#status-form').addEventListener('submit',async event=>{
+ event.preventDefault();const button=event.target.querySelector('[type=submit]');button.disabled=true;
+ try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').textContent=e.message;}finally{button.disabled=false;}
+});
