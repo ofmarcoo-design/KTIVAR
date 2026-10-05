@@ -1,7 +1,4 @@
-require('dotenv').config();
-
 const express = require('express');
-const supabase = require('./supabaseClient');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,30 +6,56 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('App online');
+  res.status(200).send('App online');
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    app: 'online',
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.get('/health/database', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('health_check')
-      .select('status, checked_at')
-      .eq('id', 1)
-      .single();
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
-    if (error) {
-      throw error;
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(503).json({
+      app: 'online',
+      database: 'not_configured',
+      message: 'Supabase environment variables are missing.'
+    });
+  }
+
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/health_check?id=eq.1&select=status,checked_at`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(`Supabase HTTP ${response.status}: ${details}`);
     }
 
-    res.json({
+    const rows = await response.json();
+    const row = rows[0] || null;
+
+    return res.status(200).json({
       app: 'online',
-      database: data?.status || 'online',
-      checked_at: data?.checked_at || null
+      database: row?.status || 'online',
+      checked_at: row?.checked_at || null
     });
   } catch (error) {
-    console.error('Erro Supabase:', error.message);
+    console.error('Supabase health check failed:', error.message);
 
-    res.status(500).json({
+    return res.status(503).json({
       app: 'online',
       database: 'offline'
     });
@@ -40,5 +63,5 @@ app.get('/health/database', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`App online na porta ${PORT}`);
+  console.log(`KTVAR online on port ${PORT}`);
 });
