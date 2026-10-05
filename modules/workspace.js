@@ -29,10 +29,10 @@ function registerWorkspace(api,supabase){
  const router=Router();const db=(req,path,options={})=>supabase('/rest/v1/'+path,{token:req.supabaseToken,...options});
  const guarded=fn=>async(req,res,next)=>{try{await fn(req,res);}catch(e){next(e);}};
  router.get('/operators',guarded(async(req,res)=>res.json(await db(req,'rpc/operator_list',{method:'POST',body:{}}))));
- function crud(route,table,schema,selection='*'){
+ function crud(route,table,schema,selection=table==='clients'?'*,plates(count),contacts(name,whatsapp,isPrimary,enabled),activities(updatedAt,completedAt)':'*'){
   router.get(route,guarded(async(req,res)=>{
    const page=Math.max(0,Math.min(100000,parseInt(req.query.page,10)||0));const q=new URLSearchParams({select:selection,order:'createdAt.desc,id.desc',limit:'51',offset:String(page*50)});
-   const search=String(req.query.search||'').replace(/[*,()%_]/g,'').slice(0,120);if(search)q.set('name',`ilike.*${search}*`);
+   const search=String(req.query.search||'').replace(/[*,()%_]/g,'').slice(0,120);if(search){if(table==='clients')q.set('or',`(name.ilike.*${search}*,company.ilike.*${search}*)`);else q.set('name',`ilike.*${search}*`);}if(table==='clients'){q.set('contacts.enabled','eq.true');q.set('contacts.order','isPrimary.desc');q.set('contacts.limit','1');q.set('activities.order','updatedAt.desc');q.set('activities.limit','1');}
    for(const field of Object.keys(schema))if(schema[field][0]==='uuid'&&req.query[field]){if(!uuid.test(req.query[field]))throw invalid();q.set(field,`eq.${req.query[field]}`);}
    if(req.query.from||req.query.to){if(table!=='clients')throw invalid('Filtro de período indisponível neste cadastro.');const {date}=require('./crm');const from=date(req.query.from),to=date(req.query.to);if(to<from)throw invalid();q.set('and',`(createdDay.gte.${from},createdDay.lte.${to})`);}
    if(['true','false'].includes(req.query.enabled))q.set('enabled',`eq.${req.query.enabled}`);

@@ -64,6 +64,11 @@ test('public QR route resolves current destination and handles unavailable plate
   assert.equal(response.status, 410);
   assert.equal(response.headers.get('location'), null);
 
+  rows[0].fallbackUrl='https://example.org/fallback';
+  response=await request();assert.equal(response.status,302);assert.equal(response.headers.get('location'),rows[0].fallbackUrl);
+  rows[0].destinationUrl=null;response=await request();assert.equal(response.status,302);
+  rows[0].active=true;rows[0].destinationUrl='javascript:alert(1)';response=await request();assert.equal(response.status,302);assert.equal(response.headers.get('location'),rows[0].fallbackUrl);
+  rows[0].fallbackUrl='javascript:alert(1)';assert.equal((await request()).status,503);
   rows = [];
   assert.equal((await request()).status, 404);
   const countBefore = lookupCount;

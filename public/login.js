@@ -10,7 +10,7 @@ form.addEventListener('submit', async event => {
     const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Não foi possível entrar.');
-    window.location.assign('/plates');
+    window.location.assign(data.redirect || '/plates');
   } catch (error) { message.textContent = error.message; }
   finally { button.disabled = false; }
 });

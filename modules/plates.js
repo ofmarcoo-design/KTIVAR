@@ -74,7 +74,11 @@ async function member(token, userId) {
   return rows.length === 1;
 }
 
-async function authenticate(req, res, next) {
+async function portalMember(token,userId) {
+  try {return (await supabase(`/rest/v1/client_portal_access?${new URLSearchParams({select:'userId',userId:`eq.${userId}`,limit:'1'})}`,{token})).length===1;}
+  catch(error){if(error.status===404)return false;throw error;}
+}
+async function authenticate(req, res, next, portal = false) {
   res.set('Cache-Control', 'no-store');
   const saved = cookies(req);
   let token = saved.ktivar_access;
@@ -97,13 +101,13 @@ async function authenticate(req, res, next) {
       session(res, fresh, secureRequest(req));
     }
     if (!user) throw Object.assign(new Error('Entre para continuar.'), { status: 401 });
-    if (!await member(token, user.id)) throw Object.assign(new Error('Sua conta não tem acesso ao KTIVAR.'), { status: 403 });
+    if (!await (portal ? portalMember(token,user.id) : member(token,user.id))) throw Object.assign(new Error('Sua conta não tem acesso a esta área.'), { status: 403 });
     req.supabaseToken = token;
     req.authUser = user;
     next();
   } catch (error) {
     if ([401, 403].includes(error.status)) session(res, null, secureRequest(req));
-    if (['/plates','/manage','/reports'].includes(req.originalUrl.split('?')[0]) && [401, 403].includes(error.status)) return res.redirect('/login');
+    if (['/plates','/manage','/reports','/dashboard','/analytics','/portal'].includes(req.originalUrl.split('?')[0]) && [401, 403].includes(error.status)) return res.redirect('/login');
     res.status(error.status || 503).json({ error: error.message });
   }
 }
@@ -123,11 +127,13 @@ function validatePlate(body, allowedStatuses = statuses) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Dados inválidos.');
   const clientId = body.clientId;
   const productId = body.productId || null;
-  if (!uuid.test(clientId || '')) throw new Error('Selecione um cliente.');
+  const stock = body.status === 'stock';
+  if (!stock && !uuid.test(clientId || '')) throw new Error('Selecione um cliente.');
+  if (stock && (clientId || body.destinationUrl)) throw new Error('Placas de estoque não possuem cliente ou destino. Altere o status para vinculá-las.');
   if (productId && !uuid.test(productId)) throw new Error('Produto inválido.');
   if (!allowedStatuses.includes(body.status)) throw new Error('Selecione o status.');
   if (!purposes.includes(body.purpose)) throw new Error('Selecione a finalidade.');
-  const destinationUrl = validateDestination(body.destinationUrl);
+  const destinationUrl = stock ? null : validateDestination(body.destinationUrl);
   const optionalText = (value, limit) => {
     if (value == null || value === '') return null;
     if (typeof value !== 'string' || value.length > limit) throw new Error('Texto inválido ou muito longo.');
@@ -139,11 +145,11 @@ function validatePlate(body, allowedStatuses = statuses) {
     const parsed = new Date(`${deliveredAt}T00:00:00Z`);
     if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== deliveredAt) throw new Error('Data de entrega inválida.');
   }
-  return { clientId, productId, status: body.status, purpose: body.purpose, destinationUrl, installationLocation: optionalText(body.installationLocation, 300), nfcIdentifier: optionalText(body.nfcIdentifier, 200), deliveredAt };
+  return { clientId: clientId || null, productId, status: body.status, purpose: body.purpose, destinationUrl, installationLocation: optionalText(body.installationLocation, 300), nfcIdentifier: optionalText(body.nfcIdentifier, 200), deliveredAt };
 }
 
 function registerPlates(app) {
-  app.use(['/login', '/plates', '/manage', '/reports', '/assets', '/api'], (req, res, next) => {
+  app.use(['/login', '/plates', '/manage', '/reports', '/dashboard', '/analytics', '/portal', '/assets', '/api'], (req, res, next) => {
     res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
@@ -157,6 +163,8 @@ function registerPlates(app) {
   app.get('/plates', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/plates.html')));
   app.get('/reports', authenticate, (req,res)=>res.sendFile(path.join(__dirname,'../views/reports.html')));
   app.get('/manage', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/manage.html')));
+  app.get(['/dashboard','/analytics'],authenticate,(req,res)=>res.sendFile(path.join(__dirname,'../views/dashboard.html')));
+  app.get('/portal',(req,res,next)=>authenticate(req,res,next,true),(req,res)=>res.sendFile(path.join(__dirname,'../views/client-portal.html')));
   const api = Router();
   api.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -182,16 +190,20 @@ function registerPlates(app) {
     attempts.set(key, attempt);
     try {
       const tokens = await supabase('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } });
-      if (!await member(tokens.access_token, tokens.user.id)) return res.status(403).json({ error: 'Sua conta não tem acesso ao KTIVAR.' });
+      const admin = await member(tokens.access_token,tokens.user.id);
+      if (!admin && !await portalMember(tokens.access_token,tokens.user.id)) return res.status(403).json({ error: 'Sua conta não tem acesso ao KTIVAR.' });
       session(res, tokens, secureRequest(req));
       attempts.delete(key);
-      res.json({ email: tokens.user.email });
+      res.json({ email: tokens.user.email,redirect:admin?'/dashboard':'/portal' });
     } catch (error) {
       if ([400, 401, 422].includes(error.status)) return res.status(401).json({ error: 'E-mail ou senha inválidos.' });
       next(error);
     }
   });
+  api.get('/portal',(req,res,next)=>authenticate(req,res,next,true),async(req,res,next)=>{try{res.json(await supabase('/rest/v1/rpc/client_portal_snapshot',{token:req.supabaseToken,method:'POST',body:{}}));}catch(error){next(error);}});
+  api.post('/portal/logout',(req,res,next)=>authenticate(req,res,next,true),async(req,res,next)=>{try{await supabase('/auth/v1/logout?scope=local',{token:req.supabaseToken,method:'POST'});session(res,null,secureRequest(req));res.json({ok:true});}catch(error){session(res,null,secureRequest(req));next(error);}});
   api.use(authenticate);
+  require('./administration').registerAdministration(api,supabase,permanentPlateUrl,validateDestination);
   require('./statuses').registerStatuses(api, supabase);
   require('./workspace').registerWorkspace(api, supabase);
   require('./crm').registerCRM(api, supabase);
@@ -222,7 +234,10 @@ function registerPlates(app) {
     try {
       if(req.query.from||req.query.to){const {date}=require('./crm');const from=date(req.query.from),to=date(req.query.to);if(to<from)return res.status(400).json({error:'Período inválido.'});query.set('and',`(createdDay.gte.${from},createdDay.lte.${to})`);}
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
-      res.json({ items: rows.slice(0, 50), hasMore: rows.length > 50, page });
+      const items=rows.slice(0,50);
+      const scans=items.length?await supabase('/rest/v1/rpc/plate_list_accesses',{token:req.supabaseToken,method:'POST',body:{p_codes:items.map(p=>p.code)}}):[];
+      const totals=new Map(scans.map(p=>[p.code,p.accesses]));
+      res.json({ items: items.map(p=>({...p,accesses:totals.get(p.code)??0})), hasMore: rows.length > 50, page });
     } catch (error) { next(error); }
   });
   api.get('/plates/:code', async (req, res, next) => {
@@ -279,7 +294,7 @@ function registerPlates(app) {
     let values;
     try {
       const available = await supabase('/rest/v1/plate_statuses?select=key', {token:req.supabaseToken});
-      values = validatePlate(req.body, available.map(item=>item.key)); validateDestination(values.destinationUrl,req.get('host'));
+      values = validatePlate(req.body, available.map(item=>item.key)); if(values.destinationUrl)validateDestination(values.destinationUrl,req.get('host'));
     } catch (error) { if(error.status) return next(error); return res.status(400).json({ error: error.message }); }
     try {
       const query = new URLSearchParams({ select: 'code' });

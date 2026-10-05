@@ -18,7 +18,7 @@ test('plate input rejects invalid dates and missing links, preserves optional fi
 });
 
 test('login requires allowlisted user, renews session, and protects APIs and screen', async t => {
-  let allowed = true;
+  let allowed = true, portalAllowed=false;
   const plate = { code: 'PL-000143', destinationUrl: 'https://destination.invalid/first' };
   const user = { id: '00000000-0000-4000-8000-000000000001', email: 'test@example.com' };
   const database = http.createServer(async (req,res) => {
@@ -35,6 +35,8 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
       if(req.headers.authorization !== 'Bearer valid') {res.statusCode=403;return res.end('{}');}
       return res.end(JSON.stringify(user));
     }
+    if(url.pathname === '/rest/v1/client_portal_access') return res.end(JSON.stringify(portalAllowed?[{userId:user.id}]:[]));
+    if(url.pathname === '/rest/v1/rpc/client_portal_snapshot') return res.end(JSON.stringify({name:'Own client',plates:[]}));
     if(url.pathname === '/rest/v1/plate_access') return res.end(JSON.stringify(allowed?[{userId:user.id}]:[]));
     if(url.pathname === '/rest/v1/plates') {
       const code = url.searchParams.get('code');
@@ -120,6 +122,15 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.equal((await request('/api/plates',{cookie})).status,403);
   assert.equal((await request('/api/plates/PL-000143/qr.svg',{cookie})).status,403);
   assert.equal((await request('/api/login',{method:'POST',body:{email:user.email,password:'good'}})).status,403);
+  portalAllowed=true;
+  response=await request('/api/login',{method:'POST',body:{email:user.email,password:'good'}});assert.equal(response.status,200);assert.equal((await response.json()).redirect,'/portal');
+  assert.equal((await request('/portal',{cookie})).status,200);
+  assert.equal((await request('/api/portal?clientId=OTHER',{cookie})).status,200);
+  assert.equal((await request('/api/workspace/clients',{cookie})).status,403);
+  assert.equal((await request('/api/plates',{method:'POST',cookie,body:{}})).status,403);
+  assert.equal((await request('/api/settings',{cookie})).status,403);
+  assert.equal((await request('/api/portal/logout',{method:'POST',cookie,body:{}})).status,200);
+  portalAllowed=false;assert.equal((await request('/api/portal',{cookie})).status,403);
   allowed=true;
   response=await request('/api/logout',{method:'POST',cookie,body:{}});
   assert.equal(response.status,200);

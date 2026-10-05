@@ -43,9 +43,9 @@ async function load() {
       cell(row, plate.code, 'Código');
       const client = cell(row, plate.client?.name, 'Cliente');
       if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.company; client.append(small); }
-      cell(row, purposeLabels[plate.purpose], 'Finalidade');
+      cell(row, plate.product?.name, 'Produto');
       const badge = document.createElement('span'); badge.className = `badge ${plate.status}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} cell(row, '', 'Status').replaceChildren(badge);
-      cell(row, plate.installationLocation, 'Instalação');
+      const destination=cell(row, plate.destinationUrl || 'Sem destino · estoque', 'Destino atual');destination.classList.add('url-cell');const urlText=document.createElement('span');urlText.className='truncate-url';urlText.textContent=destination.textContent;urlText.title=plate.destinationUrl||'Sem destino';destination.replaceChildren(urlText);cell(row, plate.accesses===undefined?'—':new Intl.NumberFormat('pt-BR').format(plate.accesses), 'Acessos');
       cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action('Editar', () => openEditor(plate.code)));
       $('#rows').append(row);
     }
@@ -83,7 +83,7 @@ async function openEditor(code = null) {
       $('#dates').textContent = `Criada em ${date(plate.createdAt)} · Atualizada em ${date(plate.updatedAt)}`;
     }
     await Promise.all([references('clients', plate?.client), references('products', plate?.product)]);
-    fillStatusSelect(form.elements.status, plate?.status);
+    fillStatusSelect(form.elements.status, plate?.status);syncStockFields();
     editor.showModal();
   } catch (error) { showError(error); }
 }
@@ -103,7 +103,7 @@ form.addEventListener('submit', async event => {
 async function view(code) {
   try {
     const plate = await api(`/plates/${code}`); viewed = code; viewedPlate=plate; historyPage=0;
-    $('#view-title').textContent = plate.code; $('#details').replaceChildren();
+    $('#view-title').textContent = plate.code; $('#details').replaceChildren();$('#view-destination').hidden=plate.status==='stock';$('#view-edit').textContent=plate.status==='stock'?'Vincular placa':'Editar placa';
     $('#qr-code').textContent = plate.code;
     $('.nfc-url').hidden = true;
     $('#nfc-url').value = plate.permanentUrl;
@@ -158,7 +158,7 @@ $('#reference-form').addEventListener('submit', async event => {
 });
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
-loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');if(params.has('from')&&params.has('to')){const p=document.createElement('p');p.className='muted';p.textContent=`Período: ${params.get('from')} a ${params.get('to')} · Brasília`;const a=document.createElement('a');a.href='/plates';a.textContent='Limpar período';p.append(document.createElement('br'),a);$('.toolbar').after(p);}await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
+loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(params.has('status'))$('#filter-status').value=params.get('status');if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');if(params.has('from')&&params.has('to')){const p=document.createElement('p');p.className='muted';p.textContent=`Período: ${params.get('from')} a ${params.get('to')} · Brasília`;const a=document.createElement('a');a.href='/plates';a.textContent='Limpar período';p.append(document.createElement('br'),a);$('.toolbar').after(p);}await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
 
 async function loadHistory() {
   $('#history-message').textContent='Carregando histórico…';
@@ -210,7 +210,7 @@ function fillStatusSelect(select,selected,all=false) {
 }
 async function loadStatuses(){
  plateStatuses=await api('/plate-statuses');statusLabels=Object.fromEntries(plateStatuses.map(s=>[s.key,s.name]));
- fillStatusSelect($('#filter-status'),null,true);fillStatusSelect(form.elements.status);
+ fillStatusSelect($('#filter-status'),null,true);fillStatusSelect(form.elements.status);syncStockFields();
 }
 for(const id of ['status','client','product'])$('#filter-'+id).addEventListener('change',()=>{page=0;load();});
 async function filterReferences(type){
@@ -232,7 +232,8 @@ async function renderStatuses(){
  for(const item of plateStatuses){
   const row=document.createElement('div');row.className='status-row';const title=document.createElement('strong');title.textContent=`${item.position}. ${item.name} · ${item.enabled?'disponível':'indisponível'} · redirect ${item.redirects?'habilitado':'desabilitado'}`;
   row.append(title,action('Editar',()=>{editingStatus=item.id;$('#status-title').textContent='Editar status';for(const key of ['name','color','position','enabled'])$('#status-form').elements[key].value=String(item[key]);$('#status-redirect-field').hidden=true;$('#status-message').textContent='';}),action(item.redirects?'Desabilitar redirect':'Habilitar redirect',async()=>{
-   if(!confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`))return;
+   if(item.key==='stock'){ $('#status-message').textContent='Vincule cliente e destino em cada placa para habilitar o redirect.';return;}
+   if(!await window.KTIVAR.confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`))return;
    try{await api(`/plate-statuses/${item.id}/redirect`,{method:'PATCH',body:JSON.stringify({redirects:!item.redirects,confirmed:true})});await renderStatuses();await load();}catch(e){$('#status-message').textContent=e.message;}
   }));$('#status-list').append(row);
  }
@@ -243,3 +244,7 @@ $('#status-form').addEventListener('submit',async event=>{
  event.preventDefault();const button=event.target.querySelector('[type=submit]');button.disabled=true;
  try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').textContent=e.message;}finally{button.disabled=false;}
 });
+
+function syncStockFields(){const stock=form.elements.status.value==='stock';for(const name of ['clientId','destinationUrl']){form.elements[name].required=!stock;form.elements[name].disabled=stock;if(stock)form.elements[name].value='';}}
+form.elements.status.addEventListener('change',syncStockFields);
+let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque?`))return;const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. Exporte o estoque em CSV para impressão.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').textContent=e.message;}finally{b.disabled=false;}});

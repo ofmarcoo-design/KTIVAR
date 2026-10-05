@@ -5,7 +5,7 @@ const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 (async()=>{
  const app=express();app.use((req,res,next)=>{res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");next();});app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));
- for(const page of ['login','plates','manage','reports'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
+ for(const page of ['login','plates','manage','reports','dashboard','client-portal'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
  const statuses=[{id:'00000000-0000-4000-8000-000000000001',key:'active',name:'Ativa',color:'#187446',position:0,enabled:true,redirects:true}];
  const plate={code:'PL-000143',revision:0,status:'active',purpose:'other',clientId:statuses[0].id,client:{id:statuses[0].id,name:'Nome muito longo '.repeat(10),company:'Empresa '.repeat(20)},product:{id:statuses[0].id,name:'Produto '.repeat(20)},installationLocation:'Local '.repeat(60),destinationUrl:'https://example.test/'+ 'destino'.repeat(200),permanentUrl:'https://plates.example.test/r/PL-000143',createdAt:new Date().toISOString()};
  app.get('/api/session',(req,res)=>res.json({email:'operator-with-a-long-email-address@example.test'}));
@@ -28,6 +28,11 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
  app.get('/api/workspace/sales/:id',(req,res)=>res.json(sale));
  app.get('/api/workspace/clients/:id/timeline',(req,res)=>res.json({items:[{id:'event',createdAt:plate.createdAt,kind:'deals',description:'Cadastro: name',actorEmail:'operator@example.test',metadata:{}}],hasMore:false}));
  for(const type of ['clients','products','sales','deals','activities'])app.get('/api/workspace/'+type,(req,res)=>res.json({items:type==='clients'?[client]:type==='products'?[product]:type==='deals'?[deal]:type==='activities'?[activity]:type==='sales'?[sale]:[],hasMore:false}));
+ app.get('/portal',(req,res)=>res.sendFile(path.join(__dirname,'../views/client-portal.html')));
+ app.get('/analytics',(req,res)=>res.sendFile(path.join(__dirname,'../views/dashboard.html')));
+ app.get('/api/settings',(req,res)=>res.json({id:1,fallbackUrl:null,revision:0}));
+ app.get('/api/overview',(req,res)=>res.json({clients:1,plates:2,active:1,stock:1,scans:{today:1,days7:7,days30:30,total:100},recent:[{id:'event',entity:'plates',entityId:plate.code,operation:'INSERT',createdAt:plate.createdAt}],topPlates:[{code:plate.code,name:client.name,count:30}]}));
+ app.get('/api/portal',(req,res)=>res.json({name:client.name,company:client.company,plates:[{code:plate.code,destinationUrl:plate.destinationUrl,days30:30}]}));
  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));let browser;
  const failures=[];
  try{
@@ -41,6 +46,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
    await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#qr-image').waitFor();await check('viewer');await page.locator('#copy-nfc').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),plate.permanentUrl,'NFC must copy the QR permanent URL');const downloading=page.waitForEvent('download');await page.locator('#qr-download').click();const downloaded=await downloading;assert.equal(downloaded.suggestedFilename(),'PL-000143.svg');
    await page.locator('#view-destination').click();await check('destination');await page.locator('#destination-cancel').click();await page.locator('#view-close').click();
    await page.locator('#new').click();await page.locator('#editor[open]').waitFor();await check('editor');await page.locator('#add-client').click();await check('client');await page.locator('#reference-cancel').click();await page.locator('#editor [data-close]').first().click();
+   await page.locator('#batch-open').click();await page.locator('#batch-editor[open]').waitFor();await check('batch');await page.locator('#batch-close').click();
    await page.locator('#configure-statuses').click();await page.locator('.status-row').waitFor();await check('status manager');await page.locator('#status-close').click();
    for(const module of ['clients','products','sales','deals','activities','config']){
     await page.goto(`http://127.0.0.1:${server.address().port}/manage?module=${module}`);await page.locator('#module-title').waitFor();await check(module+' list');
@@ -50,6 +56,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
     if(['clients','sales'].includes(module)){await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#profile[open]').waitFor();await check(module+' profile');await page.locator('#profile-close').click();}
    }
    await page.goto(`http://127.0.0.1:${server.address().port}/reports`);await page.locator('#metrics .record-card').first().waitFor();await check('reports');await page.locator('#preset').selectOption('quarter');await check('quarter reports');await page.locator('#preset').selectOption('custom');await check('custom period');
+   for(const view of ['dashboard','analytics','portal']){await page.goto(`http://127.0.0.1:${server.address().port}/${view}`);await page.locator(view==='portal'?'#portal-plates .record-card':'#scan-metrics strong').first().waitFor();await check(view);if(view==='dashboard'&&width<=900){await page.locator('.menu-toggle').click();await page.locator('.module-nav').getByRole('link',{name:'Dashboard',exact:true}).waitFor({state:'visible'});await check('sidebar open');await page.keyboard.press('Escape');}}
+   if(process.env.QA_SCREENSHOT_DIR){const fs=require('node:fs');fs.mkdirSync(process.env.QA_SCREENSHOT_DIR,{recursive:true});for(const [name,url] of [['dashboard','/dashboard'],['plates','/plates'],['clients','/manage?module=clients'],['products','/manage?module=products'],['sales','/manage?module=sales'],['crm','/manage?module=deals'],['activities','/manage?module=activities'],['settings','/manage?module=config'],['reports','/reports'],['analytics','/analytics'],['portal','/portal'],['login','/login']]){await page.goto(`http://127.0.0.1:${server.address().port}${url}`);await page.waitForLoadState('networkidle');await page.screenshot({path:path.join(process.env.QA_SCREENSHOT_DIR,`${name}-${width}.png`),fullPage:true});}}
    console.log(`PASS responsive: ${width}×${height}, login/plates/QR/forms/clients/sales/CRM/activities/config/reports.`);
   }
   assert.deepEqual(failures,[],'Browser JavaScript errors');

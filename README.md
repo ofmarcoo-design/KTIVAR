@@ -251,3 +251,37 @@ do Supabase e incluir Auth/configurações; a exportação do app não é esse d
 Nenhum upgrade de plano ou cobrança foi realizado.
 Permanece um aviso do Supabase sobre proteção contra senhas vazadas desabilitada;
 as demais verificações de segurança do banco passaram.
+
+## UI e operação — versão 1.2
+
+Tema dark, sidebar com SVGs locais e navegação responsiva em todas as views.
+O login administrativo abre `/dashboard`; `/analytics` reutiliza a mesma consulta
+real e destaca acessos. `/reports` preserva os indicadores comerciais e períodos.
+A página principal continua compatível: redireciona para `/plates`.
+
+`Gerar lote` cria 1–500 placas `stock`, sem cliente/destino. A RPC usa a sequence
+existente e UUID de requisição para impedir duplicação em retries; a transação
+falha integralmente. O código é preservado ao selecionar outro status e vincular
+cliente/destino. O CSV em `/api/stock.csv` exporta TODO o estoque paginado, UTF-8
+com BOM e separador `;`, código e a mesma URL HTTPS pública do QR/NFC.
+
+Configurações incluem `Fallback URL`, opcional e validada. O resolver consulta
+a configuração no mesmo roundtrip do redirect, reutilizando o tracking atual.
+Placa existente inativa/estoque/sem destino válido usa o fallback quando
+configurado; sem fallback preserva 410/503. Inexistentes mantêm 404.
+Acessos ao fallback não contam como scans bem-sucedidos da placa.
+
+`/portal` é read-only e reutiliza o login/cookies do Supabase. No perfil do
+cliente, vincule ou revogue o e-mail de uma conta já criada no Supabase Auth.
+Não crie outra conta administrativa nem insira essa conta em `plate_access`.
+Uma conta pode pertencer a um único cliente. O backend verifica a sessão e
+a RPC não recebe clientId: retorna somente nome/empresa, placas ativas, destinos
+e acessos em 30 dias desse cliente. RLS administrativa permanece restrita.
+Revogar o vínculo bloqueia inclusive uma sessão ainda válida. Nenhuma senha
+foi criada/modificada nem convite enviado automaticamente por esta entrega.
+
+A migration `stock_fallback_portal_dashboard` mantém registros, códigos,
+histórico e URLs. Acrescenta `plate_batches`, `application_settings`,
+`client_portal_access` e `plates.batchId`; amplia vínculos nulos somente para
+estoque. Backup privado inclui essas tabelas. O ensaio também aceita exports
+anteriores que não possuíam esses módulos. Veja `docs/UI-AUDIT.md`.

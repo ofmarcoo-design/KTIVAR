@@ -42,19 +42,17 @@ app.get('/r/:code', async (req, res) => {
     if (!Array.isArray(rows)) throw new Error('Invalid plate lookup response');
     const plate = rows[0];
     if (!plate) return res.status(404).send('Placa não encontrada.');
-    if (plate.active !== true) return res.status(410).send('Placa inativa.');
-
     let destination;
     try {
-      destination = new URL(plate.destinationUrl);
-    } catch {
-      return res.status(503).send('Destino da placa indisponível.');
+      if (plate.active === true) destination = new URL(require('./modules/plates').validateDestination(plate.destinationUrl,req.get('host')));
+    } catch { /* Existing plates with invalid destinations may use the configured fallback. */ }
+    if (!destination && plate.fallbackUrl) {
+      try { destination = new URL(require('./modules/plates').validateDestination(plate.fallbackUrl,req.get('host'))); }
+      catch { return res.status(503).send('Destino alternativo indisponível.'); }
     }
-    if (!['http:', 'https:'].includes(destination.protocol)) {
-      return res.status(503).send('Destino da placa indisponível.');
-    }
+    if (!destination) return plate.active !== true ? res.status(410).send('Placa inativa.') : res.status(503).send('Destino da placa indisponível.');
 
-    if (req.method==='GET' && plate.recorded===false) console.warn('Plate access analytics unavailable');
+    if (req.method==='GET' && plate.active && plate.recorded===false) console.warn('Plate access analytics unavailable');
     return res.redirect(302, destination.href);
   } catch (error) {
     console.error('Plate redirect lookup failed:', error.message);

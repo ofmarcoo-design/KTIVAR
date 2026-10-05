@@ -1,11 +1,15 @@
 // Restore rehearsal on an isolated PGlite fixture only. No production connection accepted.
-const tables=['plate_statuses','client_segments','client_sources','tags','product_categories','product_types','activity_types','loss_reasons','crm_stages','clients','products','contacts','client_tags','deals','deal_tags','activities','sales','sale_items','plates','plate_destination_history','plate_scan_events','plate_scan_daily','audit_log'];
+const tables=['plate_statuses','client_segments','client_sources','tags','product_categories','product_types','activity_types','loss_reasons','crm_stages','clients','products','contacts','client_tags','deals','deal_tags','activities','sales','sale_items','plate_batches','application_settings','client_portal_access','plates','plate_destination_history','plate_scan_events','plate_scan_daily','audit_log'];
 async function restoreFixture(db,backup){
  if(!(db instanceof require('@electric-sql/pglite').PGlite)||typeof db.exec!=='function')throw new Error('Use an isolated PGlite fixture.');
+ // Preserve compatibility with exports created before stock/portal existed.
+ backup={...backup,tables:{...backup?.tables,plate_batches:backup?.tables?.plate_batches||[],application_settings:backup?.tables?.application_settings||[{id:1}],client_portal_access:backup?.tables?.client_portal_access||[]}};
  if(backup?.format!=='ktivar-app-backup'||backup.version!==1||tables.some(t=>!Array.isArray(backup.tables?.[t])))throw new Error('Invalid backup format.');
  const quote=s=>'"'+s.replaceAll('"','""')+'"';
  await db.exec('begin');try{
   const owners=new Set((backup.operators||[]).map(x=>x.id));for(const table of ['clients','deals','activities'])for(const row of backup.tables[table])if(row.ownerId)owners.add(row.ownerId);
+  for(const row of backup.tables.client_portal_access)owners.add(row.userId);
+  for(const row of backup.tables.plate_batches)owners.add(row.actorId);
   for(const id of owners)await db.query('insert into auth.users(id,email) values($1,$2) on conflict(id) do nothing',[id,backup.operators?.find(x=>x.id===id)?.email||null]);
   for(const operator of backup.operators||[])await db.query('insert into plate_access("userId") values($1) on conflict do nothing',[operator.id]);
   for(const table of tables)await db.exec(`alter table public.${table} disable trigger user`);
