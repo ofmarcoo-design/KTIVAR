@@ -10,6 +10,8 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0"
   }
 }
