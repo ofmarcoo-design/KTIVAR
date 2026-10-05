@@ -204,3 +204,25 @@ As listas incluem Atrasadas/Hoje/Futuras/Concluídas, usando datas de Brasília.
 A timeline reúne auditoria, atividade, venda, negociação e destino, paginada
 com IDs únicos. Notas e timeline permanecem privadas.
 `scripts/verify-crm.js` valida os fluxos reais e imprime IDs de teste para limpeza.
+
+### Dashboard, relatórios e continuidade
+
+`/reports` consulta dados reais por mês, trimestre, ano, 30 dias ou datas
+personalizadas. Compara um intervalo anterior com o mesmo número de dias.
+Vendas canceladas ficam fora de quantidade/valor; estimativas do CRM não são
+vendas. Conversão é ganhas / (ganhas + perdidas) encerradas no período.
+Placas vendidas são unidades aplicáveis dos itens de vendas confirmadas;
+placas cadastradas e placas ativas são indicadores separados.
+Origem/segmento usam a classificação atual do cliente, explicitada na tela.
+Datas e drilldowns usam Brasília, inclusive em registros próximos da meia-noite.
+
+A exportação privada JSON usa um snapshot consistente da aplicação, sem
+senhas/tokens, configurações de Auth, Storage ou hosting. Não substitui o backup
+completo do projeto no Supabase. Mantenha cópias em armazenamento protegido e
+fora da hospedagem, seguindo uma frequência compatível com a perda aceitável.
+`test/reports.test.js` restaura o snapshot em banco isolado e confere totais,
+placas e histórico. `scripts/restore-fixture.js` aceita apenas PGlite isolado;
+não é um comando de restauração da produção. Antes de restaurar produção,
+use o procedimento do provedor e preserve/mapeie os IDs de Supabase Auth.
+`scripts/verify-reports.js` confere relatórios, drilldowns e exportação com o
+banco real, com IDs exatos de testes temporários.

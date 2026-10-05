@@ -12,6 +12,7 @@ function registerCRM(api,supabase){
    const page=Math.max(0,Math.min(100000,parseInt(req.query.page,10)||0));const q=new URLSearchParams({select:selections[type],order:type==='deals'?'createdAt.desc,id.desc':'dueDate.asc,id.asc',limit:'51',offset:String(page*50)});const search=String(req.query.search||'').replace(/[*,()%_]/g,'').slice(0,120);if(search)q.set('name',`ilike.*${search}*`);
    for(const field of ['clientId','ownerId',type==='deals'?'stageId':'dealId'])if(req.query[field]){if(!uuid.test(req.query[field]))throw invalid();q.set(field,`eq.${req.query[field]}`);}
    if(type==='deals'&&req.query.result){if(!['open','won','lost'].includes(req.query.result))throw invalid();q.set('result',`eq.${req.query.result}`);}
+   if(req.query.from||req.query.to){const from=date(req.query.from),to=date(req.query.to);if(to<from)throw invalid();const column=type==='activities'?'dueDate':['won','lost'].includes(req.query.result)?'closedDay':'createdDay';q.set('and',`(${column}.gte.${from},${column}.lte.${to})`);}
    if(type==='activities'){
     const mode=req.query.mode||'pending';if(!['pending','overdue','today','future','completed','all'].includes(mode))throw invalid();const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
     if(mode!=='all')q.set('enabled','eq.true');if(mode==='completed')q.set('completedAt','not.is.null');else if(mode!=='all')q.set('completedAt','is.null');

@@ -99,7 +99,7 @@ async function authenticate(req, res, next) {
     next();
   } catch (error) {
     if ([401, 403].includes(error.status)) session(res, null, secureRequest(req));
-    if (['/plates','/manage'].includes(req.originalUrl.split('?')[0]) && [401, 403].includes(error.status)) return res.redirect('/login');
+    if (['/plates','/manage','/reports'].includes(req.originalUrl.split('?')[0]) && [401, 403].includes(error.status)) return res.redirect('/login');
     res.status(error.status || 503).json({ error: error.message });
   }
 }
@@ -137,7 +137,7 @@ function validatePlate(body, allowedStatuses = statuses) {
 }
 
 function registerPlates(app) {
-  app.use(['/login', '/plates', '/manage', '/assets', '/api'], (req, res, next) => {
+  app.use(['/login', '/plates', '/manage', '/reports', '/assets', '/api'], (req, res, next) => {
     res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
@@ -149,6 +149,7 @@ function registerPlates(app) {
     res.sendFile(path.join(__dirname, '../views/login.html'));
   });
   app.get('/plates', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/plates.html')));
+  app.get('/reports', authenticate, (req,res)=>res.sendFile(path.join(__dirname,'../views/reports.html')));
   app.get('/manage', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/manage.html')));
   const api = Router();
   api.use((req, res, next) => {
@@ -188,6 +189,7 @@ function registerPlates(app) {
   require('./statuses').registerStatuses(api, supabase);
   require('./workspace').registerWorkspace(api, supabase);
   require('./crm').registerCRM(api, supabase);
+  require('./reports').registerReports(api, supabase);
   api.get('/session', (req, res) => res.json({ email: req.authUser.email }));
   api.post('/logout', async (req, res, next) => {
     try {
@@ -211,6 +213,7 @@ function registerPlates(app) {
       query.set(field, `eq.${value}`);
     }
     try {
+      if(req.query.from||req.query.to){const {date}=require('./crm');const from=date(req.query.from),to=date(req.query.to);if(to<from)return res.status(400).json({error:'Período inválido.'});query.set('and',`(createdDay.gte.${from},createdDay.lte.${to})`);}
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
       res.json({ items: rows.slice(0, 50), hasMore: rows.length > 50, page });
     } catch (error) { next(error); }

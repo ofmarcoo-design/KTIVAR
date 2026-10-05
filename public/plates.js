@@ -32,7 +32,9 @@ async function load() {
   const id = ++listRequest;
   $('#message').textContent = 'Carregando placas…';
   try {
+    const params=new URLSearchParams(location.search);
     const filters = new URLSearchParams({page,search:$('#search').value,status:$('#filter-status').value,clientId:$('#filter-client').value,productId:$('#filter-product').value});
+    for(const key of ['from','to'])if(params.get(key))filters.set(key,params.get(key));
     const data = await api(`/plates?${filters}`);
     if (id !== listRequest) return;
     $('#rows').replaceChildren();
@@ -156,7 +158,7 @@ $('#reference-form').addEventListener('submit', async event => {
 });
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
-loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
+loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');if(params.has('from')&&params.has('to')){const p=document.createElement('p');p.className='muted';p.textContent=`Período: ${params.get('from')} a ${params.get('to')} · Brasília`;const a=document.createElement('a');a.href='/plates';a.textContent='Limpar período';p.append(document.createElement('br'),a);$('.toolbar').after(p);}await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
 
 async function loadHistory() {
   $('#history-message').textContent='Carregando histórico…';

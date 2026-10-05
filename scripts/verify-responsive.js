@@ -5,7 +5,7 @@ const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 (async()=>{
  const app=express();app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));
- for(const page of ['login','plates','manage'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
+ for(const page of ['login','plates','manage','reports'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
  const statuses=[{id:'00000000-0000-4000-8000-000000000001',key:'active',name:'Ativa',color:'#187446',position:0,enabled:true,redirects:true}];
  const plate={code:'PL-000143',revision:0,status:'active',purpose:'other',clientId:statuses[0].id,client:{id:statuses[0].id,name:'Nome muito longo '.repeat(10),company:'Empresa '.repeat(20)},product:{id:statuses[0].id,name:'Produto '.repeat(20)},installationLocation:'Local '.repeat(60),destinationUrl:'https://example.test/'+ 'destino'.repeat(200),permanentUrl:'https://plates.example.test/r/PL-000143',createdAt:new Date().toISOString()};
  app.get('/api/session',(req,res)=>res.json({email:'operator-with-a-long-email-address@example.test'}));
@@ -18,6 +18,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
  for(const type of ['clients','products'])app.get('/api/'+type,(req,res)=>res.json([type==='clients'?plate.client:plate.product]));
  const client={...plate.client,enabled:true,revision:0,contacts:[],client_tags:[],plates:[plate],sales:[]};
  const product={...plate.product,enabled:true,revision:0,priceCents:12990,generatesPlate:true};
+ app.get('/api/workspace/reports',(req,res)=>{const current={newClients:0,confirmedSales:1,salesCents:25000,purchasingClients:1,platesSold:2,newPlates:1,registeredAccesses:30,won:1,lost:0,closed:1};res.json({from:req.query.from,to:req.query.to,previousFrom:'2026-09-01',previousTo:'2026-09-30',current,previous:{...current,salesCents:0},activePlatesNow:1,overdueNow:0,products:[{...product,salesCents:25000,quantity:2}],lossReasons:[],sources:[],segments:[],plateAccesses:[{code:plate.code,name:client.name,count:30}]});});
  app.get('/api/workspace/operators',(req,res)=>res.json([{id:client.id,email:'operator@example.test'}]));
  app.get('/api/workspace/catalogs/:kind',(req,res)=>res.json([{id:client.id,name:'Opção longa '.repeat(8),enabled:true,revision:0,color:'#667085',position:0}]));
  app.get('/api/workspace/clients/:id/profile',(req,res)=>res.json(client));
@@ -46,7 +47,8 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
     await page.locator('#editor-close').click();
     if(module==='clients'){await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#profile[open]').waitFor();await check('client profile');await page.locator('#profile-close').click();}
    }
-   console.log(`PASS responsive: ${width}×${height}, login/plates/QR/forms/clients/sales/CRM/activities/config.`);
+   await page.goto(`http://127.0.0.1:${server.address().port}/reports`);await page.locator('#metrics .record-card').first().waitFor();await check('reports');await page.locator('#preset').selectOption('quarter');await check('quarter reports');await page.locator('#preset').selectOption('custom');await check('custom period');
+   console.log(`PASS responsive: ${width}×${height}, login/plates/QR/forms/clients/sales/CRM/activities/config/reports.`);
   }
   assert.deepEqual(failures,[],'Browser JavaScript errors');
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
