@@ -14,5 +14,8 @@
   "dependencies": {
     "express": "5.1.0",
     "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.4.5"
   }
 }

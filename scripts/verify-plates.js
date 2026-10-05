@@ -44,7 +44,7 @@ async function request(route, method = 'GET', body, anonymous = false) {
     assert.equal(before.data.client.id, client.data.id);
     assert.equal(before.data.product.id, product.data.id);
     assert.equal(before.data.deliveredAt, values.deliveredAt);
-    const changed = { ...values, productId: '', status: 'active', destinationUrl: 'https://example.org/current', installationLocation: 'Entrada' };
+    const changed = { ...values, revision:before.data.revision, productId: '', status: 'active', destinationUrl: 'https://example.org/current', installationLocation: 'Entrada' };
     assert.equal((await request(`/api/plates/${firstCode}`, 'PATCH', changed)).response.status, 200);
     const after = await request(`/api/plates/${firstCode}`);
     assert.equal(after.data.code, firstCode);
@@ -53,6 +53,18 @@ async function request(route, method = 'GET', body, anonymous = false) {
     assert.equal(after.data.status, 'active');
     assert.equal(after.data.createdAt, before.data.createdAt);
     assert.ok(new Date(after.data.updatedAt) > new Date(before.data.updatedAt));
+    const qrBefore=await fetch(base+`/api/plates/${firstCode}/qr.svg`,{headers:{Cookie:cookie}}).then(r=>r.text());
+    const destination=await request(`/api/plates/${firstCode}/destination`,'PATCH',{destinationUrl:'https://example.net/new',revision:after.data.revision});
+    assert.equal(destination.response.status,200,JSON.stringify(destination.data));
+    assert.equal((await request(`/api/plates/${firstCode}/destination`,'PATCH',{destinationUrl:'https://example.net/stale',revision:after.data.revision})).response.status,409);
+    const redirect=await fetch(base+`/r/${firstCode}`,{redirect:'manual'});
+    assert.equal(redirect.status,302); assert.equal(redirect.headers.get('location'),'https://example.net/new');
+    const qrAfter=await fetch(base+`/api/plates/${firstCode}/qr.svg`,{headers:{Cookie:cookie}}).then(r=>r.text());
+    assert.equal(qrBefore,qrAfter);
+    const history=await request(`/api/plates/${firstCode}/destination-history`);
+    assert.equal(history.data.items[0].previousUrl,changed.destinationUrl);
+    assert.equal(history.data.items[0].destinationUrl,'https://example.net/new');
+    assert.equal(history.data.items[0].actorEmail,process.env.TEST_EMAIL);
     const list = await request(`/api/plates?search=${firstCode}`);
     assert.ok(list.data.items.some(item => item.code === firstCode));
     assert.equal((await request('/api/plates', 'POST', { ...values, clientId: '' })).response.status, 400);

@@ -104,6 +104,15 @@ async function authenticate(req, res, next) {
   }
 }
 
+function validateDestination(value, host) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  let url;
+  try { url = new URL(text); } catch { throw new Error('Informe uma URL válida.'); }
+  if (!['https:', 'http:'].includes(url.protocol) || /[\s\x00-\x1f\x7f]/.test(text) || text.length > 2048 || url.username || url.password) throw new Error('Use uma URL HTTP ou HTTPS válida, sem credenciais.');
+  if (host && url.host === host && /^\/r\/PL-\d{6}\/?$/.test(url.pathname)) throw new Error('O destino não pode apontar para o redirecionamento de outra placa neste domínio.');
+  return text;
+}
+
 function validatePlate(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Dados inválidos.');
   const clientId = body.clientId;
@@ -112,10 +121,7 @@ function validatePlate(body) {
   if (productId && !uuid.test(productId)) throw new Error('Produto inválido.');
   if (!statuses.includes(body.status)) throw new Error('Selecione o status.');
   if (!purposes.includes(body.purpose)) throw new Error('Selecione a finalidade.');
-  const destinationUrl = typeof body.destinationUrl === 'string' ? body.destinationUrl.trim() : '';
-  let destination;
-  try { destination = new URL(destinationUrl); } catch { throw new Error('Informe uma URL válida.'); }
-  if (!['https:', 'http:'].includes(destination.protocol) || /\s/.test(destinationUrl) || destinationUrl.length > 2048) throw new Error('Use uma URL HTTP ou HTTPS válida.');
+  const destinationUrl = validateDestination(body.destinationUrl);
   const optionalText = (value, limit) => {
     if (value == null || value === '') return null;
     if (typeof value !== 'string' || value.length > limit) throw new Error('Texto inválido ou muito longo.');
@@ -186,7 +192,7 @@ function registerPlates(app) {
       res.json({ ok: true });
     } catch (error) { session(res, null, secureRequest(req)); next(error); }
   });
-  const selection = 'code,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,client:clients(id,name,company,phone),product:products(id,name)';
+  const selection = 'code,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,revision,client:clients(id,name,company,phone),product:products(id,name)';
   api.get('/plates', async (req, res, next) => {
     const page = Math.max(0, Math.min(100000, Number.parseInt(req.query.page, 10) || 0));
     const query = new URLSearchParams({ select: selection, order: 'createdAt.desc,code.desc', limit: '51', offset: String(page * 50) });
@@ -223,15 +229,38 @@ function registerPlates(app) {
       res.send(svg);
     } catch (error) { next(error); }
   });
+  api.get('/plates/:code/destination-history', async (req, res, next) => {
+    if (!/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
+    try {
+      const query = new URLSearchParams({ select: '*', plateCode: `eq.${req.params.code}`, order: 'createdAt.desc,id.desc', limit: '51', offset: String(Math.max(0, Number.parseInt(req.query.page,10)||0)*50) });
+      const rows = await supabase(`/rest/v1/plate_destination_history?${query}`, { token: req.supabaseToken });
+      res.json({ items: rows.slice(0,50), hasMore: rows.length>50 });
+    } catch (error) { next(error); }
+  });
+  api.patch('/plates/:code/destination', async (req, res, next) => {
+    if (!/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
+    let destinationUrl;
+    try { destinationUrl = validateDestination(req.body?.destinationUrl, req.get('host')); } catch(error) { return res.status(400).json({ error:error.message }); }
+    if (!Number.isSafeInteger(req.body?.revision) || req.body.revision<0) return res.status(428).json({error:'Reabra a placa para carregar a versão atual.'});
+    try {
+      const query = new URLSearchParams({ select:'code,destinationUrl,revision', code:`eq.${req.params.code}`, revision:`eq.${req.body.revision}` });
+      const rows=await supabase(`/rest/v1/plates?${query}`,{token:req.supabaseToken,method:'PATCH',body:{destinationUrl},prefer:'return=representation'});
+      if(!rows.length) return res.status(409).json({error:'A placa mudou. Reabra-a antes de salvar.'});
+      res.json(rows[0]);
+    } catch(error) { next(error); }
+  });
   for (const method of ['post', 'patch']) api[method](method === 'post' ? '/plates' : '/plates/:code', async (req, res, next) => {
     if (method === 'patch' && !/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
     let values;
-    try { values = validatePlate(req.body); } catch (error) { return res.status(400).json({ error: error.message }); }
+    try { values = validatePlate(req.body); validateDestination(values.destinationUrl,req.get('host')); } catch (error) { return res.status(400).json({ error: error.message }); }
     try {
       const query = new URLSearchParams({ select: 'code' });
-      if (method === 'patch') query.set('code', `eq.${req.params.code}`);
+      if (method === 'patch') {
+        if (!Number.isSafeInteger(req.body?.revision) || req.body.revision<0) return res.status(428).json({error:'Reabra a placa para carregar a versão atual.'});
+        query.set('code', `eq.${req.params.code}`); query.set('revision', `eq.${req.body.revision}`);
+      }
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken, method: method.toUpperCase(), body: values, prefer: 'return=representation' });
-      if (!rows.length) return res.status(404).json({ error: 'Placa não encontrada.' });
+      if (!rows.length) return res.status(409).json({ error: 'A placa mudou. Reabra-a antes de salvar.' });
       res.status(method === 'post' ? 201 : 200).json(rows[0]);
     } catch (error) { next(error); }
   });
@@ -270,4 +299,4 @@ function registerPlates(app) {
   });
 }
 
-module.exports = { registerPlates, validatePlate };
+module.exports = { registerPlates, validatePlate, validateDestination, supabase, authenticate };

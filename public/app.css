@@ -53,3 +53,5 @@ dl{grid-template-columns:170px minmax(0,1fr)}
   .login-page{place-items:start center}
   .login-card .brand{margin-bottom:20px}
 }
+
+.history-panel{margin-top:28px;border-top:1px solid #e4e8ee;padding-top:24px}.history-panel ol{list-style:none;padding:0}.history-panel li{padding:16px 0;border-bottom:1px solid #e4e8ee;font-size:14px}.history-panel li p{margin:6px 0;overflow-wrap:anywhere}#destination-message{color:#ad342d}

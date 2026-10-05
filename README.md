@@ -121,3 +121,16 @@ Não esconda dados ou ações necessários apenas por falta de espaço.
 A listagem usa tabela em desktop e cartões rotulados até 900px. Formulários,
 paginação, login e visualização do QR se adaptam às telas menores, sem exigir
 rolagem horizontal da página. O SVG baixado mantém sua resolução vetorial.
+
+## Implantação incremental da V1
+
+Destino possui ação dedicada, histórico transacional e revisão concorrente.
+O histórico é criado pelo banco em todas as escritas e não pode ser alterado
+pela aplicação. O QR continua contendo apenas a URL permanente.
+
+As quatro migrations originais estão versionadas. `supabase/config.toml`
+permite desenvolvimento local; nunca execute reset no projeto remoto.
+`npm test` aplica toda a cadeia em PostgreSQL embarcado (PGlite, apenas teste),
+com funções de Auth equivalentes para verificar constraints, triggers e RLS.
+Isso complementa testes HTTP e não troca o Supabase de produção.
+`.env.example` lista a configuração sem credenciais.

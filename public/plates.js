@@ -5,6 +5,9 @@ const statusLabels = { pending: 'Pendente', active: 'Ativa', inactive: 'Inativa'
 const purposeLabels = { google_review: 'Avaliação Google', pix: 'Pix', wifi: 'Wi-Fi', link_bio: 'Link na bio', other: 'Outra' };
 let page = 0;
 let editing = null;
+let editingRevision = null;
+let viewedPlate = null;
+let historyPage = 0;
 let viewed = null;
 let referenceType = null;
 let listRequest = 0;
@@ -65,7 +68,7 @@ async function references(type, selected) {
 async function openEditor(code = null) {
   try {
     const plate = code ? await api(`/plates/${code}`) : null;
-    editing = code;
+    editing = code; editingRevision = plate?.revision;
     form.reset();
     $('#client-search').value = ''; $('#product-search').value = '';
     $('#form-message').textContent = ''; $('#dates').textContent = '';
@@ -82,7 +85,7 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   const button = $('#save'); button.disabled = true; $('#form-message').textContent = '';
   try {
-    const values = Object.fromEntries(new FormData(form)); delete values.code;
+    const values = Object.fromEntries(new FormData(form)); delete values.code; if(editing) values.revision=editingRevision;
     const result = await api(editing ? `/plates/${editing}` : '/plates', { method: editing ? 'PATCH' : 'POST', body: JSON.stringify(values) });
     editor.close();
     page = 0; $('#search').value = '';
@@ -93,7 +96,7 @@ form.addEventListener('submit', async event => {
 });
 async function view(code) {
   try {
-    const plate = await api(`/plates/${code}`); viewed = code;
+    const plate = await api(`/plates/${code}`); viewed = code; viewedPlate=plate; historyPage=0;
     $('#view-title').textContent = plate.code; $('#details').replaceChildren();
     $('#qr-code').textContent = plate.code;
     $('#qr-image').alt = `QR da placa ${plate.code}`;
@@ -112,6 +115,7 @@ async function view(code) {
       $('#details').append(dt, dd);
     }
     $('#viewer').showModal();
+    loadHistory().catch(error=>{ $('#history-message').textContent=error.message; });
   } catch (error) { showError(error); }
 }
 $('#qr-image').addEventListener('load', () => { $('#qr-message').textContent = ''; });
@@ -146,3 +150,33 @@ $('#reference-form').addEventListener('submit', async event => {
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
 load();
+
+async function loadHistory() {
+  $('#history-message').textContent='Carregando histórico…';
+  const data=await api(`/plates/${viewed}/destination-history?page=${historyPage}`);
+  $('#history').replaceChildren();
+  for(const item of data.items) {
+    const li=document.createElement('li');
+    const heading=document.createElement('strong'); heading.textContent=`${date(item.createdAt)} · ${item.actorEmail || 'Manutenção do sistema'}`;
+    const before=document.createElement('p'); before.textContent=`Anterior: ${item.previousUrl || 'Cadastro inicial'}`;
+    const after=document.createElement('p'); after.textContent=`Novo: ${item.destinationUrl}`;
+    li.append(heading,before,after); $('#history').append(li);
+  }
+  $('#history-message').textContent=data.items.length?'':'Ainda não há mudanças registradas.';
+  $('#history-previous').disabled=historyPage===0; $('#history-next').disabled=!data.hasMore;
+}
+$('#history-previous').addEventListener('click',()=>{historyPage--;loadHistory().catch(showError);});
+$('#history-next').addEventListener('click',()=>{historyPage++;loadHistory().catch(showError);});
+$('#view-destination').addEventListener('click',()=>{
+  $('#destination-form').elements.destinationUrl.value=viewedPlate.destinationUrl;
+  $('#destination-message').textContent=''; $('#destination-editor').showModal();
+});
+$('#destination-cancel').addEventListener('click',()=>$('#destination-editor').close());
+$('#destination-form').addEventListener('submit',async event=>{
+  event.preventDefault(); const button=$('#destination-save'); button.disabled=true;
+  try {
+    await api(`/plates/${viewed}/destination`,{method:'PATCH',body:JSON.stringify({destinationUrl:event.target.elements.destinationUrl.value,revision:viewedPlate.revision})});
+    $('#destination-editor').close(); $('#viewer').close(); await view(viewed); await load();
+  } catch(error) { $('#destination-message').textContent=error.message; }
+  finally {button.disabled=false;}
+});
