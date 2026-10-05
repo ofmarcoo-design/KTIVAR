@@ -56,7 +56,7 @@ function registerWorkspace(api,supabase){
  }));
  router.post('/contacts/:id/primary',guarded(async(req,res)=>{if(!uuid.test(req.params.id))throw invalid();await db(req,'rpc/set_primary_contact',{method:'POST',body:{p_id:req.params.id}});res.json({ok:true});}));
  router.put('/clients/:id/tags',guarded(async(req,res)=>{if(!uuid.test(req.params.id)||!Array.isArray(req.body?.tags)||req.body.tags.length>50||req.body.tags.some(t=>!uuid.test(t)))throw invalid();await db(req,'rpc/set_client_tags',{method:'POST',body:{p_client:req.params.id,p_tags:req.body.tags}});res.json({ok:true});}));
- const saleSelect='id,clientId,soldAt,status,cancellationReason,createdAt,updatedAt,revision,client:clients(id,name),items:sale_items(*),plates:plates(code,saleItemId,saleUnit)';
+ const saleSelect='id,clientId,dealId,soldAt,status,cancellationReason,createdAt,updatedAt,revision,client:clients(id,name),items:sale_items(*),plates:plates(code,saleItemId,saleUnit)';
  // Plates link to an item; avoid a nonexistent direct sales relationship.
  const selection=saleSelect.replace(',plates:plates(code,saleItemId,saleUnit)','').replace('items:sale_items(*)','items:sale_items(*,plates(code,saleUnit))');
  router.get('/sales',guarded(async(req,res)=>{const page=Math.max(0,Math.min(100000,parseInt(req.query.page,10)||0));const q=new URLSearchParams({select:selection,order:'soldAt.desc,id.desc',limit:'51',offset:String(page*50)});if(req.query.clientId){if(!uuid.test(req.query.clientId))throw invalid();q.set('clientId',`eq.${req.query.clientId}`);}if(req.query.from||req.query.to){const {date}=require('./crm');const from=date(req.query.from),to=date(req.query.to);if(to<from)throw invalid();q.set('and',`(soldAt.gte.${from},soldAt.lte.${to})`);}

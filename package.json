@@ -1,6 +1,6 @@
 {
   "name": "ktivar",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "KTIVAR web app",
   "main": "server.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "test": "node --test"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "dependencies": {
     "express": "5.1.0",

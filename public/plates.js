@@ -44,7 +44,7 @@ async function load() {
       const client = cell(row, plate.client?.name, 'Cliente');
       if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.company; client.append(small); }
       cell(row, purposeLabels[plate.purpose], 'Finalidade');
-      const badge = document.createElement('span'); badge.className = `badge ${plate.status}`; badge.textContent = statusLabels[plate.status]; cell(row, '', 'Status').replaceChildren(badge);
+      const badge = document.createElement('span'); badge.className = `badge ${plate.status}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} cell(row, '', 'Status').replaceChildren(badge);
       cell(row, plate.installationLocation, 'Instalação');
       cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action('Editar', () => openEditor(plate.code)));
       $('#rows').append(row);
@@ -127,7 +127,7 @@ async function view(code) {
     loadHistory().catch(error=>{ $('#history-message').textContent=error.message; });
   } catch (error) { showError(error); }
 }
-$('#qr-image').addEventListener('load', () => { $('#qr-message').textContent = ''; });
+$('#qr-image').addEventListener('load', () => { if($('#qr-message').textContent==='Carregando QR…')$('#qr-message').textContent = ''; });
 $('#qr-image').addEventListener('error', () => { $('#qr-message').textContent = 'Não foi possível carregar o QR. Reabra a placa para tentar novamente.'; });
 $('#view-close').addEventListener('click', () => $('#viewer').close());
 $('#view-edit').addEventListener('click', () => { $('#viewer').close(); openEditor(viewed); });

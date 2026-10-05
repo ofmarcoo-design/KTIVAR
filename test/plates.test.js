@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const http = require('node:http');
-const { registerPlates, validatePlate } = require('../modules/plates');
+const { registerPlates, validatePlate, validateDestination } = require('../modules/plates');
 
 test('plate input rejects invalid dates and missing links, preserves optional fields', () => {
   const values = { clientId: '00000000-0000-4000-8000-000000000001', productId: '', status: 'pending', purpose: 'pix', destinationUrl: ' https://example.com ', deliveredAt: '', nfcIdentifier: '', installationLocation: '' };
@@ -13,6 +13,8 @@ test('plate input rejects invalid dates and missing links, preserves optional fi
   assert.equal(normalized.destinationUrl, 'https://example.com');
   for (const changes of [{clientId:''},{status:'unknown'},{purpose:'unknown'},{destinationUrl:'javascript:alert(1)'},{deliveredAt:'2026-02-30'},{deliveredAt:'2026-99-01'}]) assert.throws(() => validatePlate({...values,...changes}));
   assert.equal(validatePlate({...values,deliveredAt:'2024-02-29'}).deliveredAt,'2024-02-29');
+  for(const url of ['https://plates.test/r/PL-000143','https://plates.test/R/PL-000143','https://plates.test/r/%50%4C-000143'])assert.throws(()=>validateDestination(url,'plates.test'));
+  assert.equal(validateDestination('https://another.test/r/PL-000143','plates.test'),'https://another.test/r/PL-000143');
 });
 
 test('login requires allowlisted user, renews session, and protects APIs and screen', async t => {
@@ -95,6 +97,13 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.equal(await (await request('/api/plates/PL-000143/qr.svg', {cookie,host})).text(), svg);
   const anotherHost = await request('/api/plates/PL-000143', {cookie,host:'another.example.test'});
   assert.equal((await anotherHost.json()).permanentUrl, 'https://another.example.test/r/PL-000143');
+  const oldOrigin=process.env.PUBLIC_ORIGIN;
+  try {
+    process.env.PUBLIC_ORIGIN='https://canonical.example.test';
+    assert.equal((await(await request('/api/plates/PL-000143',{cookie,host})).json()).permanentUrl,'https://canonical.example.test/r/PL-000143');
+    process.env.PUBLIC_ORIGIN='https://canonical.example.test/path';
+    assert.equal((await request('/api/plates/PL-000143',{cookie,host})).status,503);
+  } finally {if(oldOrigin===undefined)delete process.env.PUBLIC_ORIGIN;else process.env.PUBLIC_ORIGIN=oldOrigin;}
   const download = await request('/api/plates/PL-000143/qr.svg?download=1', {cookie,host});
   assert.match(download.headers.get('content-disposition'), /attachment; filename="PL-000143.svg"/);
   assert.equal(await download.text(), svg);

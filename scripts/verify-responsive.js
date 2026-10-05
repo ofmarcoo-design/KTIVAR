@@ -4,7 +4,7 @@ const express=require('express');
 const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 (async()=>{
- const app=express();app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));
+ const app=express();app.use((req,res,next)=>{res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");next();});app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));
  for(const page of ['login','plates','manage','reports'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
  const statuses=[{id:'00000000-0000-4000-8000-000000000001',key:'active',name:'Ativa',color:'#187446',position:0,enabled:true,redirects:true}];
  const plate={code:'PL-000143',revision:0,status:'active',purpose:'other',clientId:statuses[0].id,client:{id:statuses[0].id,name:'Nome muito longo '.repeat(10),company:'Empresa '.repeat(20)},product:{id:statuses[0].id,name:'Produto '.repeat(20)},installationLocation:'Local '.repeat(60),destinationUrl:'https://example.test/'+ 'destino'.repeat(200),permanentUrl:'https://plates.example.test/r/PL-000143',createdAt:new Date().toISOString()};
@@ -23,20 +23,22 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
  app.get('/api/workspace/catalogs/:kind',(req,res)=>res.json([{id:client.id,name:'Opção longa '.repeat(8),enabled:true,revision:0,color:'#667085',position:0}]));
  app.get('/api/workspace/clients/:id/profile',(req,res)=>res.json(client));
  const deal={id:client.id,clientId:client.id,name:'Negociação '.repeat(12),estimatedCents:40000,stageId:client.id,result:'open',revision:0,client:{...client,sales:[]},activities:[],deal_tags:[]};
+ const sale={id:client.id,clientId:client.id,client,status:'confirmed',soldAt:'2026-10-05',revision:0,totalCents:25000,items:[{id:product.id,productId:product.id,description:product.name,quantity:2,priceCents:12990,discountCents:980,totalCents:25000,generatesPlate:true,plates:[]}]};
  const activity={id:client.id,clientId:client.id,dealId:deal.id,typeId:client.id,name:'Atividade '.repeat(25),note:'Observação longa '.repeat(100),dueDate:'2026-10-06',revision:0,enabled:true,client,type:{name:'Follow-up'}};
+ app.get('/api/workspace/sales/:id',(req,res)=>res.json(sale));
  app.get('/api/workspace/clients/:id/timeline',(req,res)=>res.json({items:[{id:'event',createdAt:plate.createdAt,kind:'deals',description:'Cadastro: name',actorEmail:'operator@example.test',metadata:{}}],hasMore:false}));
- for(const type of ['clients','products','sales','deals','activities'])app.get('/api/workspace/'+type,(req,res)=>res.json({items:type==='clients'?[client]:type==='products'?[product]:type==='deals'?[deal]:type==='activities'?[activity]:[],hasMore:false}));
+ for(const type of ['clients','products','sales','deals','activities'])app.get('/api/workspace/'+type,(req,res)=>res.json({items:type==='clients'?[client]:type==='products'?[product]:type==='deals'?[deal]:type==='activities'?[activity]:type==='sales'?[sale]:[],hasMore:false}));
  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));let browser;
  const failures=[];
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox']});
-  const page=await browser.newPage();page.on('pageerror',error=>failures.push(error.message));
+  const page=await browser.newPage({permissions:['clipboard-read','clipboard-write']});page.on('pageerror',error=>failures.push(error.message));page.on('console',message=>{if(message.type()==='error'&&message.text().includes('Content Security Policy'))failures.push(message.text());});
   for(const [width,height] of [[320,640],[390,844],[768,1024],[1440,900],[844,390]]){
    await page.setViewportSize({width,height});
    const check=async label=>{assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${width}: page overflow in ${label}`);for(const dialog of await page.locator('dialog[open]').all())assert.equal(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth),true,`${width}: dialog overflow in ${label}`);};
    await page.goto(`http://127.0.0.1:${server.address().port}/login`);await check('login');
    await page.goto(`http://127.0.0.1:${server.address().port}/plates`);await page.getByRole('button',{name:'Ver',exact:true}).waitFor();await check('list');
-   await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#qr-image').waitFor();await check('viewer');
+   await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#qr-image').waitFor();await check('viewer');await page.locator('#copy-nfc').click();assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),plate.permanentUrl,'NFC must copy the QR permanent URL');const downloading=page.waitForEvent('download');await page.locator('#qr-download').click();const downloaded=await downloading;assert.equal(downloaded.suggestedFilename(),'PL-000143.svg');
    await page.locator('#view-destination').click();await check('destination');await page.locator('#destination-cancel').click();await page.locator('#view-close').click();
    await page.locator('#new').click();await page.locator('#editor[open]').waitFor();await check('editor');await page.locator('#add-client').click();await check('client');await page.locator('#reference-cancel').click();await page.locator('#editor [data-close]').first().click();
    await page.locator('#configure-statuses').click();await page.locator('.status-row').waitFor();await check('status manager');await page.locator('#status-close').click();
@@ -45,7 +47,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
     await page.locator('#create').click();await page.locator('#record-editor[open]').waitFor();await check(module+' form');
     if(module==='sales'){await page.locator('#add-item').click();await page.locator('.sale-item').nth(1).waitFor();await check('multiple sale items');}
     await page.locator('#editor-close').click();
-    if(module==='clients'){await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#profile[open]').waitFor();await check('client profile');await page.locator('#profile-close').click();}
+    if(['clients','sales'].includes(module)){await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#profile[open]').waitFor();await check(module+' profile');await page.locator('#profile-close').click();}
    }
    await page.goto(`http://127.0.0.1:${server.address().port}/reports`);await page.locator('#metrics .record-card').first().waitFor();await check('reports');await page.locator('#preset').selectOption('quarter');await check('quarter reports');await page.locator('#preset').selectOption('custom');await check('custom period');
    console.log(`PASS responsive: ${width}×${height}, login/plates/QR/forms/clients/sales/CRM/activities/config/reports.`);

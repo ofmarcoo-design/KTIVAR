@@ -34,7 +34,11 @@ function secureRequest(req) {
 
 function permanentPlateUrl(req, code) {
   // Public printed URLs always use HTTPS, including behind a TLS-terminating proxy.
-  return new URL(`/r/${code}`, `https://${req.get('host')}`).href;
+  let origin;
+  try { origin=new URL(process.env.PUBLIC_ORIGIN || `https://${req.get('host')}`); }
+  catch { throw Object.assign(new Error('Domínio público inválido.'),{status:503}); }
+  if(origin.protocol!=='https:' || origin.username || origin.password || origin.pathname!=='/' || origin.search || origin.hash || (process.env.NODE_ENV==='production' && ['localhost','127.0.0.1','[::1]'].includes(origin.hostname))) throw Object.assign(new Error('Configure um domínio público HTTPS válido.'),{status:503});
+  return new URL(`/r/${code}`, origin).href;
 }
 
 async function supabase(endpoint, { token, method = 'GET', body, prefer } = {}) {
@@ -109,7 +113,9 @@ function validateDestination(value, host) {
   let url;
   try { url = new URL(text); } catch { throw new Error('Informe uma URL válida.'); }
   if (!['https:', 'http:'].includes(url.protocol) || /[\s\x00-\x1f\x7f]/.test(text) || text.length > 2048 || url.username || url.password) throw new Error('Use uma URL HTTP ou HTTPS válida, sem credenciais.');
-  if (host && url.host === host && /^\/r\/PL-\d{6}\/?$/.test(url.pathname)) throw new Error('O destino não pode apontar para o redirecionamento de outra placa neste domínio.');
+  let pathname=url.pathname;try{pathname=decodeURIComponent(pathname);}catch{ /* Keep invalid escaped legacy paths as text. */ }
+  const hosts=[host];if(process.env.PUBLIC_ORIGIN){try{hosts.push(new URL(process.env.PUBLIC_ORIGIN).host);}catch{ /* QR reports invalid origin separately. */ }}
+  if (hosts.some(value=>value&&url.host.toLowerCase()===value.toLowerCase()) && /^\/r\/PL-\d{6}\/?$/i.test(pathname)) throw new Error('O destino não pode apontar para o redirecionamento de outra placa neste domínio.');
   return text;
 }
 
@@ -157,7 +163,7 @@ function registerPlates(app) {
     if (!['GET', 'HEAD'].includes(req.method)) {
       let origin;
       try { origin = new URL(req.get('origin')); } catch { return res.status(403).json({ error: 'Origem da requisição inválida.' }); }
-      if (origin.host !== req.get('host') || !req.is('application/json')) return res.status(403).json({ error: 'Origem da requisição inválida.' });
+      if (origin.host !== req.get('host') || !['http:','https:'].includes(origin.protocol) || (secureRequest(req)&&origin.protocol!=='https:') || !req.is('application/json')) return res.status(403).json({ error: 'Origem da requisição inválida.' });
     }
     next();
   });
@@ -191,6 +197,7 @@ function registerPlates(app) {
   require('./crm').registerCRM(api, supabase);
   require('./reports').registerReports(api, supabase);
   api.get('/session', (req, res) => res.json({ email: req.authUser.email }));
+  api.get('/system', (req,res)=>res.json({node:process.version,version:require('../package.json').version}));
   api.post('/logout', async (req, res, next) => {
     try {
       await supabase('/auth/v1/logout?scope=local', { token: req.supabaseToken, method: 'POST' });

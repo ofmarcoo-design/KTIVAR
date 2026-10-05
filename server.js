@@ -119,6 +119,21 @@ app.get('/health/database', async (req, res) => {
   }
 });
 
+
+// Keep the public redirect's existing responses; handle other unknown routes and failures.
+app.use((req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(req.path.startsWith('/api/'))return res.status(404).json({error:'Recurso não encontrado.'});
+ res.status(404).type('text/plain').send('Página não encontrada. Volte para a página principal.');
+});
+app.use((error,req,res,next)=>{
+ if(res.headersSent)return next(error);
+ console.error('Request failed:',error.type||error.code||'unexpected');
+ res.set('Cache-Control','no-store');
+ if(req.path.startsWith('/api/'))return res.status(500).json({error:'Operação temporariamente indisponível.'});
+ res.status(500).type('text/plain').send('Página temporariamente indisponível. Tente novamente.');
+});
+
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`KTIVAR online on port ${server.address().port}`);
 });

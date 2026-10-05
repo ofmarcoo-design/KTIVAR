@@ -1,6 +1,6 @@
 # KTIVAR — redirecionamento de placas
 
-Servidor Express / Node 20. Execute `npm install`, `npm run build`,
+Servidor Express / Node 24 LTS. Execute `npm install`, `npm run build`,
 `npm test` e `npm start`. Não há etapa de compilação de frontend;
 o build verifica a sintaxe do servidor.
 
@@ -98,9 +98,9 @@ A visualização de cada placa mostra o QR, o código, a URL permanente e o
 destino atual. “Baixar QR para impressão (SVG)” entrega um arquivo vetorial,
 preto sobre branco, com margem de quatro módulos, sem perda de resolução.
 
-A URL codificada é exclusivamente `https://<host-da-requisição>/r/PL-XXXXXX`.
-O host vem da requisição da aplicação, sem domínio fixo ou configuração
-adicional de hosting. O protocolo público é sempre HTTPS, inclusive quando
+A URL codificada é exclusivamente `https://<domínio-público>/r/PL-XXXXXX`.
+O host vem da requisição da aplicação, sem domínio fixo. `PUBLIC_ORIGIN`
+opcional aceita uma origem HTTPS sem caminho para definir o domínio canônico. O protocolo público é sempre HTTPS, inclusive quando
 a Hostinger termina o TLS antes do servidor Express. `destinationUrl` não
 participa da geração; editar o destino não altera o QR para o mesmo domínio.
 
@@ -226,3 +226,28 @@ não é um comando de restauração da produção. Antes de restaurar produção
 use o procedimento do provedor e preserve/mapeie os IDs de Supabase Auth.
 `scripts/verify-reports.js` confere relatórios, drilldowns e exportação com o
 banco real, com IDs exatos de testes temporários.
+
+### Fechamento de segurança e implantação
+
+As RPCs expostas são `SECURITY INVOKER`; implementações transacionais
+privilegiadas ficam no schema não exposto `private`, sempre com verificação
+de `plate_access`. Auditoria e histórico não aceitam escrita direta do app.
+A origem HTTPS é verificada nas mutações. O QR recusa origem local em
+produção; o destino recusa loops para `/r/:code`, inclusive escapes/case.
+Erros finais retornam texto/JSON próprio, sem stack pública.
+
+Node 24 é a LTS alvo registrada em `engines` e `.nvmrc`; a versão efetiva
+de produção pode ser conferida por um usuário autorizado em `/api/system`.
+Se a Hostinger mantiver uma versão previamente selecionada, ajuste para 24
+no redeploy do painel; declarar a versão no repositório não prova sozinho a
+versão efetiva do processo. CI executa instalação por lockfile, build e testes.
+
+Em 05/10/2026, o projeto Supabase foi verificado no plano Free, sem o recurso
+de backups automáticos diários do plano pago. A cópia JSON da aplicação foi
+implementada e sua restauração ensaiada. A estratégia mínima é exportar após
+alterações importantes e ao final de cada expediente, guardar fora da hospedagem
+e testar restauração periodicamente. Backup completo deve usar o dump oficial
+do Supabase e incluir Auth/configurações; a exportação do app não é esse dump.
+Nenhum upgrade de plano ou cobrança foi realizado.
+Permanece um aviso do Supabase sobre proteção contra senhas vazadas desabilitada;
+as demais verificações de segurança do banco passaram.
