@@ -231,6 +231,7 @@ function registerPlates(app) {
       if (field === 'status' ? !/^[a-z][a-z0-9_-]{0,63}$/.test(value) : !uuid.test(value)) return res.status(400).json({ error: 'Filtro inválido.' });
       query.set(field, `eq.${value}`);
     }
+    if(req.query.active!==undefined){if(!['true','false'].includes(req.query.active))return res.status(400).json({error:'Filtro de redirecionamento inválido.'});query.set('active',`eq.${req.query.active}`);}
     try {
       if(req.query.from||req.query.to){const {date}=require('./crm');const from=date(req.query.from),to=date(req.query.to);if(to<from)return res.status(400).json({error:'Período inválido.'});query.set('and',`(createdDay.gte.${from},createdDay.lte.${to})`);}
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
