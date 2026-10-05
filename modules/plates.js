@@ -57,7 +57,7 @@ async function supabase(endpoint, { token, method = 'GET', body, prefer } = {}) 
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const status = data?.code === '23505' ? 409 : ['23503', '23514', '22P02', '22007', '22008', '23502'].includes(data?.code) ? 400 : response.status;
+    const status = ['23505','40001'].includes(data?.code) ? 409 : ['23503', '23514', '22P02', '22007', '22008', '23502'].includes(data?.code) ? 400 : response.status;
     const message = status === 409 ? 'Este identificador já está cadastrado.' : status === 400 ? 'Confira os dados e os vínculos informados.' : status === 401 ? 'E-mail ou senha inválidos, ou sessão expirada.' : status === 403 ? 'Acesso não autorizado.' : 'Não foi possível concluir a operação no banco.';
     throw Object.assign(new Error(message), { status: status >= 500 ? 503 : status });
   }
@@ -99,7 +99,7 @@ async function authenticate(req, res, next) {
     next();
   } catch (error) {
     if ([401, 403].includes(error.status)) session(res, null, secureRequest(req));
-    if (req.originalUrl.split('?')[0] === '/plates' && [401, 403].includes(error.status)) return res.redirect('/login');
+    if (['/plates','/manage'].includes(req.originalUrl.split('?')[0]) && [401, 403].includes(error.status)) return res.redirect('/login');
     res.status(error.status || 503).json({ error: error.message });
   }
 }
@@ -137,7 +137,7 @@ function validatePlate(body, allowedStatuses = statuses) {
 }
 
 function registerPlates(app) {
-  app.use(['/login', '/plates', '/assets', '/api'], (req, res, next) => {
+  app.use(['/login', '/plates', '/manage', '/assets', '/api'], (req, res, next) => {
     res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
@@ -149,6 +149,7 @@ function registerPlates(app) {
     res.sendFile(path.join(__dirname, '../views/login.html'));
   });
   app.get('/plates', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/plates.html')));
+  app.get('/manage', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/manage.html')));
   const api = Router();
   api.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -185,6 +186,7 @@ function registerPlates(app) {
   });
   api.use(authenticate);
   require('./statuses').registerStatuses(api, supabase);
+  require('./workspace').registerWorkspace(api, supabase);
   api.get('/session', (req, res) => res.json({ email: req.authUser.email }));
   api.post('/logout', async (req, res, next) => {
     try {

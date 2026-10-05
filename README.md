@@ -51,8 +51,8 @@ pública existente.
 
 Como não existiam cadastros de referência, o formulário inclui criação
 mínima de cliente (nome, empresa e telefone opcionais) e produto (nome).
-A geração de QR foi adicionada na etapa 2. Não há scans, histórico de destinos
-ou integração NFC.
+A geração de QR, histórico, métricas e cópia da URL para NFC foram adicionados
+nas etapas seguintes. Não há integração com hardware NFC.
 
 ### Autorização
 
@@ -108,7 +108,7 @@ participa da geração; editar o destino não altera o QR para o mesmo domínio.
 da placa no Supabase. `?download=1` envia o SVG como anexo. Placas inexistentes
 retornam 404 e usuários sem autorização não acessam a geração. A biblioteca
 `qrcode` está fixada na versão 1.5.4, com dependências registradas no lockfile.
-Não houve alterações no banco ou em `GET /r/:code`.
+Esta etapa de QR preservou o banco e o contrato público de `GET /r/:code`.
 
 ## Responsividade — regra para todas as etapas
 
@@ -164,3 +164,27 @@ com nomes e URLs longos. Requer Playwright instalado como ferramenta de
  desenvolvimento e seu Chromium. `PLAYWRIGHT_MODULE_PATH` e
 `CHROMIUM_EXECUTABLE_PATH` permitem usar instalações externas, sem acrescentar
 ferramentas de navegador ao runtime de produção.
+
+### Clientes, contatos, produtos e vendas
+
+`/manage` reutiliza o login, sessão, componentes, Express e Supabase existentes.
+Clientes têm segmento, origem, responsável comercial, cidade/UF, endereço,
+CNPJ, tags e vários contatos. A principalidade é trocada em transação.
+Produtos/serviços têm categoria, tipo, preço padrão em centavos, disponibilidade
+e indicação de geração de placa. Configurações usam tabelas próprias com FKs,
+IDs estáveis, ordem, cor e disponibilidade.
+
+Vendas são confirmadas por RPC transacional com vários itens e chave de
+idempotência. Quantidade, preço, desconto e total são exatos em centavos.
+Nome/preço do catálogo alterados posteriormente não mudam itens históricos.
+Cancelamento preserva registros e exige motivo e revisão atual. Vendas não
+representam pagamentos recebidos. Placas podem ser geradas por unidade de item
+aplicável; reenvios devolvem o mesmo código. O vínculo comercial é validado
+pelo banco e não pode ser removido ou alterado.
+
+O perfil do cliente reúne contatos, placas, compras e produtos consultados
+disponíveis para oferta. Todas as APIs comerciais exigem o token do usuário
+autorizado. Funções privilegiadas verificam a autorização antes de agir; anon
+e usuário sem `plate_access` não conseguem consultar ou executar esses fluxos.
+`scripts/verify-commercial.js` exercita o fluxo com o Supabase real e imprime
+IDs exatos dos registros temporários para limpeza administrativa.

@@ -156,7 +156,7 @@ $('#reference-form').addEventListener('submit', async event => {
 });
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
-loadStatuses().then(load).catch(showError);
+loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
 
 async function loadHistory() {
   $('#history-message').textContent='Carregando histórico…';

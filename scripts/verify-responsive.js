@@ -5,7 +5,7 @@ const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 (async()=>{
  const app=express();app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));
- for(const page of ['login','plates'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
+ for(const page of ['login','plates','manage'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
  const statuses=[{id:'00000000-0000-4000-8000-000000000001',key:'active',name:'Ativa',color:'#187446',position:0,enabled:true,redirects:true}];
  const plate={code:'PL-000143',revision:0,status:'active',purpose:'other',clientId:statuses[0].id,client:{id:statuses[0].id,name:'Nome muito longo '.repeat(10),company:'Empresa '.repeat(20)},product:{id:statuses[0].id,name:'Produto '.repeat(20)},installationLocation:'Local '.repeat(60),destinationUrl:'https://example.test/'+ 'destino'.repeat(200),permanentUrl:'https://plates.example.test/r/PL-000143',createdAt:new Date().toISOString()};
  app.get('/api/session',(req,res)=>res.json({email:'operator-with-a-long-email-address@example.test'}));
@@ -16,6 +16,12 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
  app.get('/api/plates/:code/destination-history',(req,res)=>res.json({items:[{createdAt:plate.createdAt,actorEmail:'operator@example.test',previousUrl:plate.destinationUrl,destinationUrl:plate.destinationUrl}],hasMore:false}));
  app.get('/api/plates/:code/qr.svg',async(req,res)=>res.type('svg').send(await require('qrcode').toString(plate.permanentUrl,{type:'svg'})));
  for(const type of ['clients','products'])app.get('/api/'+type,(req,res)=>res.json([type==='clients'?plate.client:plate.product]));
+ const client={...plate.client,enabled:true,revision:0,contacts:[],client_tags:[],plates:[plate],sales:[]};
+ const product={...plate.product,enabled:true,revision:0,priceCents:12990,generatesPlate:true};
+ app.get('/api/workspace/operators',(req,res)=>res.json([{id:client.id,email:'operator@example.test'}]));
+ app.get('/api/workspace/catalogs/:kind',(req,res)=>res.json([{id:client.id,name:'Opção longa '.repeat(8),enabled:true,revision:0,color:'#667085',position:0}]));
+ app.get('/api/workspace/clients/:id/profile',(req,res)=>res.json(client));
+ for(const type of ['clients','products','sales'])app.get('/api/workspace/'+type,(req,res)=>res.json({items:type==='clients'?[client]:type==='products'?[product]:[],hasMore:false}));
  const server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));let browser;
  const failures=[];
  try{
@@ -30,6 +36,13 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
    await page.locator('#view-destination').click();await check('destination');await page.locator('#destination-cancel').click();await page.locator('#view-close').click();
    await page.locator('#new').click();await page.locator('#editor[open]').waitFor();await check('editor');await page.locator('#add-client').click();await check('client');await page.locator('#reference-cancel').click();await page.locator('#editor [data-close]').first().click();
    await page.locator('#configure-statuses').click();await page.locator('.status-row').waitFor();await check('status manager');await page.locator('#status-close').click();
+   for(const module of ['clients','products','sales','config']){
+    await page.goto(`http://127.0.0.1:${server.address().port}/manage?module=${module}`);await page.locator('#module-title').waitFor();await check(module+' list');
+    await page.locator('#create').click();await page.locator('#record-editor[open]').waitFor();await check(module+' form');
+    if(module==='sales'){await page.locator('#add-item').click();await page.locator('.sale-item').nth(1).waitFor();await check('multiple sale items');}
+    await page.locator('#editor-close').click();
+    if(module==='clients'){await page.getByRole('button',{name:'Ver',exact:true}).click();await page.locator('#profile[open]').waitFor();await check('client profile');await page.locator('#profile-close').click();}
+   }
    console.log(`PASS responsive: ${width}×${height}, login/list/QR/edit/destination/client/status.`);
   }
   assert.deepEqual(failures,[],'Browser JavaScript errors');
