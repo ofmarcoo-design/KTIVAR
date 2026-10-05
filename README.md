@@ -109,3 +109,15 @@ da placa no Supabase. `?download=1` envia o SVG como anexo. Placas inexistentes
 retornam 404 e usuários sem autorização não acessam a geração. A biblioteca
 `qrcode` está fixada na versão 1.5.4, com dependências registradas no lockfile.
 Não houve alterações no banco ou em `GET /r/:code`.
+
+## Responsividade — regra para todas as etapas
+
+Todas as telas existentes e futuras devem funcionar em celular e desktop.
+Preserve o viewport mobile, campos com fonte de pelo menos 16px e ações com
+área de toque de pelo menos 44px. Valide telas estreitas a partir de 320px,
+tablets e desktop, incluindo conteúdo longo e diálogos com rolagem vertical.
+Não esconda dados ou ações necessários apenas por falta de espaço.
+
+A listagem usa tabela em desktop e cartões rotulados até 900px. Formulários,
+paginação, login e visualização do QR se adaptam às telas menores, sem exigir
+rolagem horizontal da página. O SVG baixado mantém sua resolução vetorial.

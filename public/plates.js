@@ -19,7 +19,7 @@ async function api(path, options = {}) {
 }
 const date = value => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
 const delivery = value => value ? value.split('-').reverse().join('/') : '—';
-function cell(row, text) { const td = document.createElement('td'); td.textContent = text || '—'; row.append(td); return td; }
+function cell(row, text, label) { const td = document.createElement('td'); td.textContent = text || '—'; td.dataset.label = label; row.append(td); return td; }
 function action(label, handler) { const button = document.createElement('button'); button.textContent = label; button.className = 'secondary'; button.addEventListener('click', handler); return button; }
 function debounce(fn) { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), 250); }; }
 function showError(error) { $('#message').textContent = error.message; }
@@ -32,13 +32,13 @@ async function load() {
     $('#rows').replaceChildren();
     for (const plate of data.items) {
       const row = document.createElement('tr');
-      cell(row, plate.code);
-      const client = cell(row, plate.client?.name);
+      cell(row, plate.code, 'Código');
+      const client = cell(row, plate.client?.name, 'Cliente');
       if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.company; client.append(small); }
-      cell(row, purposeLabels[plate.purpose]);
-      const badge = document.createElement('span'); badge.className = `badge ${plate.status}`; badge.textContent = statusLabels[plate.status]; cell(row, '').replaceChildren(badge);
-      cell(row, plate.installationLocation);
-      cell(row, '').replaceChildren(action('Ver', () => view(plate.code)), action('Editar', () => openEditor(plate.code)));
+      cell(row, purposeLabels[plate.purpose], 'Finalidade');
+      const badge = document.createElement('span'); badge.className = `badge ${plate.status}`; badge.textContent = statusLabels[plate.status]; cell(row, '', 'Status').replaceChildren(badge);
+      cell(row, plate.installationLocation, 'Instalação');
+      cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action('Editar', () => openEditor(plate.code)));
       $('#rows').append(row);
     }
     $('#empty').hidden = data.items.length > 0;
