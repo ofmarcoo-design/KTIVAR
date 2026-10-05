@@ -77,6 +77,6 @@ test('public QR route resolves current destination and handles unavailable plate
   databaseStatus = 500;
   assert.equal((await request()).status, 503);
 
-  assert.equal(await (await fetch(base)).text(), 'App online');
+  assert.equal((await fetch(base, { redirect: 'manual' })).headers.get('location'), '/plates');
   assert.equal((await fetch(`${base}/health`)).status, 200);
 });

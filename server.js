@@ -3,7 +3,8 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '32kb' }));
+require('./modules/plates').registerPlates(app);
 
 app.get('/r/:code', async (req, res) => {
   // The printed QR always uses this route; never cache a mutable destination.
@@ -63,7 +64,7 @@ app.get('/r/:code', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.status(200).send('App online');
+  res.redirect('/plates');
 });
 
 app.get('/health', (req, res) => {
