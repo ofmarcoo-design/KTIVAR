@@ -95,11 +95,18 @@ async function view(code) {
   try {
     const plate = await api(`/plates/${code}`); viewed = code;
     $('#view-title').textContent = plate.code; $('#details').replaceChildren();
-    const fields = [ ['Cliente', plate.client?.name], ['Empresa', plate.client?.company], ['Telefone', plate.client?.phone], ['Produto', plate.product?.name], ['Status', statusLabels[plate.status]], ['Finalidade', purposeLabels[plate.purpose]], ['Instalação', plate.installationLocation], ['Destino atual', plate.destinationUrl], ['Identificador QR', plate.code], ['Identificador NFC', plate.nfcIdentifier], ['Entrega', delivery(plate.deliveredAt)], ['Criada em', date(plate.createdAt)], ['Atualizada em', date(plate.updatedAt)] ];
+    $('#qr-code').textContent = plate.code;
+    $('#qr-image').alt = `QR da placa ${plate.code}`;
+    $('#qr-message').textContent = 'Carregando QR…';
+    const qrPath = `/api/plates/${encodeURIComponent(plate.code)}/qr.svg`;
+    $('#qr-image').src = qrPath;
+    $('#qr-download').href = `${qrPath}?download=1`;
+    $('#qr-download').download = `${plate.code}.svg`;
+    const fields = [ ['Cliente', plate.client?.name], ['Empresa', plate.client?.company], ['Telefone', plate.client?.phone], ['Produto', plate.product?.name], ['Status', statusLabels[plate.status]], ['Finalidade', purposeLabels[plate.purpose]], ['Instalação', plate.installationLocation], ['URL permanente', plate.permanentUrl], ['Destino atual', plate.destinationUrl], ['Identificador QR', plate.code], ['Identificador NFC', plate.nfcIdentifier], ['Entrega', delivery(plate.deliveredAt)], ['Criada em', date(plate.createdAt)], ['Atualizada em', date(plate.updatedAt)] ];
     for (const [label, value] of fields) {
       const dt = document.createElement('dt'); dt.textContent = label;
       const dd = document.createElement('dd'); dd.textContent = value || '—';
-      if (label === 'Destino atual') {
+      if (['URL permanente', 'Destino atual'].includes(label)) {
         try { const url = new URL(value); if (['http:', 'https:'].includes(url.protocol)) { const link = document.createElement('a'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = value; dd.replaceChildren(link); } } catch { /* Show invalid legacy destinations as text. */ }
       }
       $('#details').append(dt, dd);
@@ -107,6 +114,8 @@ async function view(code) {
     $('#viewer').showModal();
   } catch (error) { showError(error); }
 }
+$('#qr-image').addEventListener('load', () => { $('#qr-message').textContent = ''; });
+$('#qr-image').addEventListener('error', () => { $('#qr-message').textContent = 'Não foi possível carregar o QR. Reabra a placa para tentar novamente.'; });
 $('#view-close').addEventListener('click', () => $('#viewer').close());
 $('#view-edit').addEventListener('click', () => { $('#viewer').close(); openEditor(viewed); });
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => editor.close());

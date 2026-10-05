@@ -17,6 +17,7 @@ test('plate input rejects invalid dates and missing links, preserves optional fi
 
 test('login requires allowlisted user, renews session, and protects APIs and screen', async t => {
   let allowed = true;
+  const plate = { code: 'PL-000143', destinationUrl: 'https://destination.invalid/first' };
   const user = { id: '00000000-0000-4000-8000-000000000001', email: 'test@example.com' };
   const database = http.createServer(async (req,res) => {
     const url = new URL(req.url,'http://localhost');
@@ -33,6 +34,10 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
       return res.end(JSON.stringify(user));
     }
     if(url.pathname === '/rest/v1/plate_access') return res.end(JSON.stringify(allowed?[{userId:user.id}]:[]));
+    if(url.pathname === '/rest/v1/plates') {
+      const code = url.searchParams.get('code');
+      return res.end(JSON.stringify(!code || code === `eq.${plate.code}` ? [plate] : []));
+    }
     if(url.pathname === '/auth/v1/logout') {res.statusCode=204;return res.end();}
     res.end('[]');
   });
@@ -46,7 +51,20 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
   t.after(()=>new Promise(resolve=>server.close(resolve)));
   const base=`http://127.0.0.1:${server.address().port}`;
-  const request=(route,{method='GET',body,cookie='',origin=base}={})=>fetch(base+route,{method,headers:{Origin:origin,'Content-Type':'application/json',Cookie:cookie},body:body?JSON.stringify(body):undefined,redirect:'manual'});
+  const request=(route,{method='GET',body,cookie='',origin=base,host}={})=>{
+    const headers={Origin:origin,'Content-Type':'application/json',Cookie:cookie,...(host ? { Host: host } : {})};
+    if (!host) return fetch(base+route,{method,headers,body:body?JSON.stringify(body):undefined,redirect:'manual'});
+    // Use HTTP directly: fetch normalizes Host to the connection URL in some Node versions.
+    return new Promise((resolve,reject)=>{
+      const outgoing=http.request(base+route,{method,headers},incoming=>{
+        const chunks=[];incoming.on('data',chunk=>chunks.push(chunk));incoming.on('end',()=>{
+          const responseHeaders=new Headers();
+          for(const [name,value] of Object.entries(incoming.headers)) for(const item of Array.isArray(value)?value:[value]) if(item!==undefined) responseHeaders.append(name,item);
+          resolve(new Response(Buffer.concat(chunks),{status:incoming.statusCode,headers:responseHeaders}));
+        });
+      });outgoing.on('error',reject);if(body)outgoing.write(JSON.stringify(body));outgoing.end();
+    });
+  };
   assert.equal((await request('/api/plates')).status,401);
   assert.equal((await request('/plates')).headers.get('location'),'/login');
   assert.equal((await request('/api/login',{method:'POST',body:{email:user.email,password:'bad'}})).status,401);
@@ -57,6 +75,29 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   const cookie=saved.map(value=>value.split(';')[0]).join('; ');
   assert.equal((await request('/plates',{cookie})).status,200);
   assert.equal((await request('/api/plates',{cookie})).status,200);
+  const host = 'plates.example.test';
+  const permanent = `https://${host}/r/PL-000143`;
+  const detail = await (await request('/api/plates/PL-000143', {cookie,host})).json();
+  assert.equal(detail.permanentUrl, permanent);
+  const qrResponse = await request('/api/plates/PL-000143/qr.svg', {cookie,host});
+  assert.equal(qrResponse.status, 200);
+  assert.match(qrResponse.headers.get('content-type'), /^image\/svg\+xml/);
+  assert.equal(qrResponse.headers.get('cache-control'), 'no-store');
+  const svg = await qrResponse.text();
+  const expected = await require('qrcode').toString(permanent, {type:'svg',errorCorrectionLevel:'M',margin:4,color:{dark:'#000000',light:'#ffffff'}});
+  assert.equal(svg, expected);
+  assert.notEqual(svg, await require('qrcode').toString(plate.destinationUrl, {type:'svg',errorCorrectionLevel:'M',margin:4}));
+  plate.destinationUrl = 'https://destination.invalid/changed';
+  assert.equal(await (await request('/api/plates/PL-000143/qr.svg', {cookie,host})).text(), svg);
+  const anotherHost = await request('/api/plates/PL-000143', {cookie,host:'another.example.test'});
+  assert.equal((await anotherHost.json()).permanentUrl, 'https://another.example.test/r/PL-000143');
+  const download = await request('/api/plates/PL-000143/qr.svg?download=1', {cookie,host});
+  assert.match(download.headers.get('content-disposition'), /attachment; filename="PL-000143.svg"/);
+  assert.equal(await download.text(), svg);
+  assert.equal((await request('/api/plates/PL-000143/qr.svg')).status, 401);
+  assert.equal((await request('/api/plates/invalid/qr.svg', {cookie})).status, 404);
+  assert.equal((await request('/api/plates/PL-999999/qr.svg', {cookie})).status, 404);
+  if (process.env.QR_VERIFY_SVG) require('node:fs').writeFileSync(process.env.QR_VERIFY_SVG, svg);
   response=await request('/api/session',{cookie:'ktivar_refresh=refresh'});
   assert.equal(response.status,200);
   assert.ok(response.headers.getSetCookie().some(value=>value.startsWith('ktivar_access=')));
@@ -64,6 +105,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.equal((await request('/api/plates',{method:'POST',cookie,origin:'https://other.invalid',body:{}})).status,403);
   allowed=false;
   assert.equal((await request('/api/plates',{cookie})).status,403);
+  assert.equal((await request('/api/plates/PL-000143/qr.svg',{cookie})).status,403);
   assert.equal((await request('/api/login',{method:'POST',body:{email:user.email,password:'good'}})).status,403);
   allowed=true;
   response=await request('/api/logout',{method:'POST',cookie,body:{}});

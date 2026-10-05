@@ -23,8 +23,8 @@ Retornos: 302 (ativa), 404 (inexistente/código inválido), 410 (inativa),
 usam `Cache-Control: no-store`.
 
 Para mudar o destino, atualize somente `destinationUrl`, preservando
-`code`. O endereço impresso continua igual. Não há geração de QR ou
-painel de cadastro neste repositório.
+`code`. O endereço impresso continua igual. O painel gera o QR desta URL permanente,
+sem gravar o destino final dentro do QR.
 
 `database/plates.sql` registra a estrutura mínima já aplicada ao Supabase
 KTIVAR. É um script de criação para um banco novo, não deve ser reaplicado
@@ -51,7 +51,8 @@ pública existente.
 
 Como não existiam cadastros de referência, o formulário inclui criação
 mínima de cliente (nome, empresa e telefone opcionais) e produto (nome).
-Não há geração de QR, scans, histórico de destinos ou integração NFC.
+A geração de QR foi adicionada na etapa 2. Não há scans, histórico de destinos
+ou integração NFC.
 
 ### Autorização
 
@@ -90,3 +91,21 @@ novamente no banco existente.
 `TEST_EMAIL`/`TEST_PASSWORD`. Ele cria registros temporários e imprime
 `CLEANUP_IDS` para remoção administrativa após o teste. Não faz parte do
 `npm test` e não contém credenciais.
+
+## QR Code — etapa 2
+
+A visualização de cada placa mostra o QR, o código, a URL permanente e o
+destino atual. “Baixar QR para impressão (SVG)” entrega um arquivo vetorial,
+preto sobre branco, com margem de quatro módulos, sem perda de resolução.
+
+A URL codificada é exclusivamente `https://<host-da-requisição>/r/PL-XXXXXX`.
+O host vem da requisição da aplicação, sem domínio fixo ou configuração
+adicional de hosting. O protocolo público é sempre HTTPS, inclusive quando
+a Hostinger termina o TLS antes do servidor Express. `destinationUrl` não
+participa da geração; editar o destino não altera o QR para o mesmo domínio.
+
+`GET /api/plates/:code/qr.svg` reutiliza autenticação e consulta a existência
+da placa no Supabase. `?download=1` envia o SVG como anexo. Placas inexistentes
+retornam 404 e usuários sem autorização não acessam a geração. A biblioteca
+`qrcode` está fixada na versão 1.5.4, com dependências registradas no lockfile.
+Não houve alterações no banco ou em `GET /r/:code`.

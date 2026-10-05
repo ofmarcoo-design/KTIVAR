@@ -1,5 +1,6 @@
 const path = require('node:path');
 const { Router } = require('express');
+const QRCode = require('qrcode');
 
 const statuses = ['pending', 'active', 'inactive'];
 const purposes = ['google_review', 'pix', 'wifi', 'link_bio', 'other'];
@@ -29,6 +30,11 @@ function session(res, tokens, secure) {
 
 function secureRequest(req) {
   return req.secure || req.headers['x-forwarded-proto']?.split(',')[0].trim() === 'https';
+}
+
+function permanentPlateUrl(req, code) {
+  // Public printed URLs always use HTTPS, including behind a TLS-terminating proxy.
+  return new URL(`/r/${code}`, `https://${req.get('host')}`).href;
 }
 
 async function supabase(endpoint, { token, method = 'GET', body, prefer } = {}) {
@@ -199,7 +205,22 @@ function registerPlates(app) {
       const query = new URLSearchParams({ select: selection, code: `eq.${req.params.code}`, limit: '1' });
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
       if (!rows.length) return res.status(404).json({ error: 'Placa não encontrada.' });
-      res.json(rows[0]);
+      res.json({ ...rows[0], permanentUrl: permanentPlateUrl(req, rows[0].code) });
+    } catch (error) { next(error); }
+  });
+  api.get('/plates/:code/qr.svg', async (req, res, next) => {
+    if (!/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
+    try {
+      const query = new URLSearchParams({ select: 'code', code: `eq.${req.params.code}`, limit: '1' });
+      const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
+      if (!rows.length) return res.status(404).json({ error: 'Placa não encontrada.' });
+      const svg = await QRCode.toString(permanentPlateUrl(req, rows[0].code), {
+        type: 'svg', errorCorrectionLevel: 'M', margin: 4,
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      res.type('image/svg+xml');
+      if (req.query.download === '1') res.attachment(`${rows[0].code}.svg`);
+      res.send(svg);
     } catch (error) { next(error); }
   });
   for (const method of ['post', 'patch']) api[method](method === 'post' ? '/plates' : '/plates/:code', async (req, res, next) => {
