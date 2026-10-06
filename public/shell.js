@@ -9,11 +9,28 @@
   const setCollapsed=value=>{document.body.classList.toggle('nav-collapsed',value);collapse.setAttribute('aria-expanded',String(!value));collapse.textContent=value?'›':'‹ Recolher';collapse.setAttribute('aria-label',value?'Expandir navegação':'Recolher navegação');collapse.title=collapse.getAttribute('aria-label');};
   try{setCollapsed(localStorage.getItem('ktivar.nav.collapsed')==='true');}catch{setCollapsed(false);}
   collapse.addEventListener('click',()=>{const value=!document.body.classList.contains('nav-collapsed');setCollapsed(value);try{localStorage.setItem('ktivar.nav.collapsed',String(value));}catch{/* Navigation still works when storage is unavailable. */}});
-  const modules={clients:['Operação','Clientes'],products:['Comercial','Produtos'],sales:['Comercial','Vendas'],deals:['Comercial','CRM'],activities:['Comercial','Atividades'],config:['Sistema','Configurações']};
-  const current=location.pathname==='/manage'?modules[new URLSearchParams(location.search).get('module')||'clients']:({'/plates':['Operação','Placas'],'/dashboard':['Operação','Dashboard'],'/analytics':['Operação','Analytics'],'/reports':['Comercial','Relatórios']}[location.pathname]);
+  const modules={clients:['Gestão','Clientes'],products:['Comercial','Produtos'],sales:['Comercial','Vendas'],deals:['Comercial','CRM'],activities:['Comercial','Atividades'],config:['Sistema','Configurações']};
+  const current=location.pathname==='/manage'?modules[new URLSearchParams(location.search).get('module')||'clients']:({'/plates':['Gestão','Placas'],'/dashboard':['Operação','Dashboard'],'/analytics':['Visão operacional','Analytics'],'/reports':['Comercial','Relatórios']}[location.pathname]);
   if(current){const breadcrumb=document.createElement('nav');breadcrumb.className='app-breadcrumb';breadcrumb.setAttribute('aria-label','Localização');const group=document.createElement('span');group.textContent=current[0];const separator=document.createElement('span');separator.textContent='/';separator.setAttribute('aria-hidden','true');const page=document.createElement('strong');page.textContent=current[1];breadcrumb.append(group,separator,page);header.querySelector(':scope > .brand')?.replaceWith(breadcrumb);}
-  const account=header.querySelector('.account');if(account){const email=account.querySelector('#email'),logout=account.querySelector('#logout');const menu=document.createElement('details');menu.className='user-menu';const summary=document.createElement('summary');summary.setAttribute('aria-label','Menu da conta');const avatar=document.createElement('span');avatar.className='user-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent='?';const name=document.createElement('span');name.className='user-name';name.textContent='Conta';const chevron=document.createElement('span');chevron.textContent='⌄';chevron.setAttribute('aria-hidden','true');summary.append(avatar,name,chevron);const panel=document.createElement('div');panel.className='user-panel';panel.append(email);const settings=document.createElement('a');settings.href='/manage?module=config';settings.textContent='Configurações';panel.append(settings,logout);menu.append(summary,panel);account.replaceChildren(menu);
-   new MutationObserver(()=>{const value=email.textContent.trim();name.textContent=value||'Conta';name.title=value;avatar.textContent=value?value.slice(0,2).toUpperCase():'?';}).observe(email,{childList:true,characterData:true,subtree:true});
+  const account=header.querySelector('.account');if(account){
+   const email=account.querySelector('#email'),logout=account.querySelector('#logout');
+   const menu=document.createElement('details');menu.className='user-menu';
+   const summary=document.createElement('summary');summary.setAttribute('aria-label','Menu da conta');
+   const avatar=document.createElement('span');avatar.className='user-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent='?';
+   const identity=document.createElement('span');identity.className='user-identity';
+   const name=document.createElement('strong');name.className='user-name';name.textContent='Conta';
+   const secondary=document.createElement('span');secondary.className='user-email';
+   identity.append(name,secondary);
+   const chevron=document.createElement('span');chevron.className='user-chevron';chevron.textContent='⌄';chevron.setAttribute('aria-hidden','true');
+   summary.append(avatar,identity,chevron);
+   const panel=document.createElement('div');panel.className='user-panel';
+   const panelName=document.createElement('strong');panelName.className='user-panel-name';
+   panel.append(panelName,email);
+   const settings=document.createElement('a');settings.href='/manage?module=config';settings.textContent='Configurações';panel.append(settings,logout);
+   menu.append(summary,panel);account.replaceChildren(menu);
+   // Presentation label for the explicitly identified account; other accounts retain their identity.
+   const updateIdentity=()=>{const value=email.textContent.trim();const known=value.toLowerCase()==='ofmarcoo@gmail.com';const label=known?'Marco Ferhati':value||'Conta';name.textContent=label;name.title=label;panelName.textContent=label;secondary.textContent=known?value:'';secondary.title=value;avatar.textContent=known?'MF':value?value.slice(0,2).toUpperCase():'?';summary.setAttribute('aria-label','Menu da conta: '+label);};
+   updateIdentity();new MutationObserver(updateIdentity).observe(email,{childList:true,characterData:true,subtree:true});
   }
   document.addEventListener('click',event=>{for(const menu of document.querySelectorAll('.user-menu[open],.more-filters[open]'))if(!menu.contains(event.target))menu.open=false;});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){for(const menu of document.querySelectorAll('.user-menu[open],.more-filters[open]')){menu.open=false;menu.querySelector('summary').focus();event.preventDefault();}}});

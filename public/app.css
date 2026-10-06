@@ -178,3 +178,26 @@ dialog{border:1px solid var(--border);padding:24px;border-radius:10px;box-shadow
 .badge.success{background:var(--success-bg);color:var(--success-text);border-color:#aed4bc}
 /* Keep dialog actions available while long forms and details scroll. */
 dialog .form-footer{position:sticky;bottom:-24px;z-index:2;background:var(--surface);margin-left:-24px;margin-right:-24px;margin-bottom:-24px;padding:16px 24px;border-radius:0 0 10px 10px}
+
+/* Official brand and shared header finishing; preserve the operational layout. */
+.brand-logo{display:block;width:100%;height:auto;object-fit:contain}.brand-symbol{display:none}
+.module-nav .sidebar-brand{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:8px;padding:10px 12px;margin:0 8px 6px;min-height:60px;flex-shrink:0}
+.module-nav .sidebar-brand .brand-logo{width:168px;max-width:100%;height:auto}
+.login-card .login-brand{display:block;width:224px;max-width:100%;margin-bottom:28px}
+.portal-page header>.brand{display:block;width:148px;max-width:calc(100% - 90px)}
+header{border-bottom:1px solid var(--border);gap:20px;box-shadow:0 1px 0 #ffffff80}
+.app-breadcrumb{flex:1;overflow:hidden;white-space:nowrap}.app-breadcrumb strong{overflow:hidden;text-overflow:ellipsis}
+.account{flex-shrink:0;margin-left:auto}.user-menu>summary{min-height:44px;border-radius:6px;padding:4px 8px;gap:10px;transition:background .16s}
+.user-menu>summary:hover,.user-menu[open]>summary{background:var(--raised)}
+.account .user-identity{display:flex;flex-direction:column;align-items:flex-start;gap:0;min-width:0;max-width:210px}
+.account .user-name{display:block;font-size:13px;font-weight:600;line-height:18px;max-width:100%}
+.account .user-email{display:block;font-size:11px;color:var(--muted);line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.account .user-avatar{display:grid;width:34px;height:34px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #dbeafe}
+.account .user-chevron{display:block;color:var(--muted);font-size:16px}
+.account .user-panel-name{display:block;padding:4px 8px 0;font-size:14px;color:var(--text)}
+.account .user-panel #email{padding-top:2px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.user-panel #logout{margin-top:6px;border-top:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--danger)}
+.workspace>.title-row{padding-top:2px}.title-row>div:first-child{min-width:0}.title-row p{max-width:760px}
+@media(min-width:901px){.nav-collapsed .module-nav .sidebar-brand{margin:0 0 6px;padding:6px;min-height:48px}.nav-collapsed .sidebar-brand .brand-logo{display:none}.nav-collapsed .sidebar-brand .brand-symbol{display:block;width:36px;height:36px}}
+@media(max-width:650px){header{gap:8px}.account .user-identity{display:none}.account .user-panel-name{display:block}.account .user-chevron{display:block}.user-menu>summary{padding:4px;gap:4px}.app-breadcrumb{min-width:0}.portal-page header>.brand{width:136px}}
+@media(prefers-reduced-motion:reduce){.user-menu>summary{transition:none}}

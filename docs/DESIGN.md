@@ -66,3 +66,16 @@ Kanban é intencional; dados completos continuam acessíveis. Preservar zoom man
 
 A implementação fica em public/app.css, shell.js e renderizadores existentes.
 Não modifica stack, banco, autenticação, APIs, cálculo de analytics, QR ou /r/:code.
+
+## Acabamento de identidade
+
+Usar os SVGs oficiais em `public/brand` sem alterar caminhos, proporções ou
+cores. A assinatura horizontal recebe uma base branca na sidebar marinho;
+na navegação recolhida, exibir somente o símbolo original. Não duplicar o nome
+em texto ao lado da assinatura. Login e portal compartilham a marca.
+
+Topbar de 60px, alinhada aos 28px do conteúdo desktop, 20px no tablet e 16px
+no celular. Breadcrumb discreto à esquerda; menu real da conta à direita.
+Nome tem peso 600; e-mail secundário em 11px; avatar 34px. No celular, avatar
+e chevron abrem o menu que preserva nome/e-mail e as ações Configurações/Sair.
+Não adicionar Minha conta, notificações ou pesquisa sem funcionalidade.

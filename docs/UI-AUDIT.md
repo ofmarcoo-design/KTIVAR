@@ -94,3 +94,22 @@ viewports; cobre criação/edição de cliente, criação/vínculo de placa, des
 mudança do QR, lote com erro/retry idempotente, downloads, chips/períodos,
 sidebar, atalhos, exigência de follow-up/movimentação, settings e login/logout.
 Respostas HTTP controladas nos testes visuais não alteram registros de produção.
+
+## Identidade e cabeçalho — 06/10/2026
+
+Refinamento sobre a versão existente: SVGs oficiais intactos, assinatura na
+sidebar/login/portal, símbolo na sidebar recolhida e favicon. Topbar permanece
+60px e mantém a grid do conteúdo. Nome Marco Ferhati/MF associado exclusivamente
+a ofmarcoo@gmail.com na apresentação; e-mail secundário. Outras contas preservam
+sua identidade. Menu tem somente Configurações e Sair. Categorias redundantes
+removidas das views; breadcrumbs corrigidos para Gestão e Visão operacional.
+
+Revisão visual de Dashboard, Clientes, Placas, Analytics, CRM, Produtos, Vendas,
+Atividades, Relatórios, Configurações, Login e Portal. Verificação Chromium em
+320×640, 390×844, 640×900, 768×1024, 1440×900 e 844×390: contraste, overflow,
+logo carregada, nome/avatar/menu, cadastro/edição, QR, lote, configurações e
+logout/login. Fluxos HTTP controlados, sem inserir dados no banco de produção.
+Também conferida identidade de outra conta para impedir rótulo indevido.
+Build: 25 arquivos JavaScript válidos. npm test: 13/13, incluindo migrations
+e contratos de autenticação, redirect e QR. Nenhuma alteração em Auth, schema,
+APIs, métricas ou hosting.
