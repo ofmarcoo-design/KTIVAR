@@ -341,3 +341,22 @@ Dashboard destaca a próxima ação sobre estoque real, e relatórios agrupam os
 mesmos indicadores. Tema claro, azul, estados com texto/cor e responsividade
 permanecem. Nenhuma regra de backend, autenticação, banco ou redirect foi alterada.
 Veja docs/UI-AUDIT.md para o escopo e a verificação de interface.
+
+### Interface B2B híbrida
+
+A direção visual atual usa sidebar marinho, área principal off-white e cartões
+brancos. O azul é reservado a ações, foco e seleção. O cabeçalho indica o módulo
+e reúne conta/configurações/logout; desktop permite recolher a navegação, enquanto
+tablet e celular preservam o drawer. Busca, filtro frequente e Mais filtros ficam
+na mesma toolbar; chips removem uma seleção sem apagar as demais.
+
+Dashboard reúne clientes cadastrados, placas ativas e acessos em 30 dias, além de
+estoque, atividades atrasadas e quatro atalhos para cadastros existentes. Dados
+paginados não são apresentados como total global. Analytics mantém os quatro
+intervalos originais. O CRM mostra contagem e soma de estimativas da página por
+etapa e permite iniciar negociação na etapa vazia. Nome do cliente/código da
+placa abrem o registro; estoque oferece vínculo e demais placas, edição de destino.
+URL resumida é somente apresentação: cópia e QR preservam os endereços completos.
+
+Veja docs/DESIGN.md e docs/UI-AUDIT.md. A atualização não altera banco,
+autenticação, permissões, APIs, regras comerciais, analytics, NFC ou /r/:code.

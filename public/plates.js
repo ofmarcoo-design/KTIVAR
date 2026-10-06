@@ -40,17 +40,17 @@ async function load() {
     $('#rows').replaceChildren();
     for (const plate of data.items) {
       const row = document.createElement('tr');
-      cell(row, plate.code, 'Código');
-      const client = cell(row, plate.client?.name, 'Cliente');
-      if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.company; client.append(small); }
-      cell(row, plate.product?.name, 'Produto');
-      const badge = document.createElement('span'); badge.className = `badge ${plate.status} ${plateStatuses.find(s=>s.key===plate.status)?.redirects?'success':''}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} cell(row, '', 'Status').replaceChildren(badge);
-      const destination=cell(row, plate.destinationUrl || 'Sem destino · estoque', 'Destino atual');destination.classList.add('url-cell');const urlText=document.createElement('span');urlText.className='truncate-url';urlText.textContent=destination.textContent;urlText.title=plate.destinationUrl||'Sem destino';destination.replaceChildren(urlText);cell(row, plate.accesses===undefined?'—':new Intl.NumberFormat('pt-BR').format(plate.accesses), 'Acessos');
-      cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action(plate.status==='stock'?'Vincular':'Editar', () => openEditor(plate.code,plate.status==='stock')));
+      const code=action(plate.code,()=>view(plate.code));code.className='text-link plate-code';code.setAttribute('aria-label','Ver placa '+plate.code);cell(row,'','Código').replaceChildren(code);
+      const client = cell(row,'','Cliente');const clientName=document.createElement('span');clientName.className='plate-client-name';clientName.textContent=plate.client?.company||plate.client?.name||'Sem cliente';clientName.title=clientName.textContent;client.replaceChildren(clientName);
+      if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.name;small.title=plate.client.name;client.append(small); }
+      if(plate.product?.name){const product=document.createElement('small');product.textContent=plate.product.name;product.title=plate.product.name;client.append(product);}
+      const badge = document.createElement('span'); badge.className = `badge ${plate.status} ${plateStatuses.find(s=>s.key===plate.status)?.redirects?'success':''}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} const statusCell=cell(row, '', 'Status');statusCell.replaceChildren(badge);row.insertBefore(statusCell,client);
+      const destination=cell(row,'','Destino atual');destination.classList.add('url-cell');const preview=document.createElement('div');preview.className='destination-preview';const urlText=document.createElement('span');urlText.title=plate.destinationUrl||'Cliente e destino serão vinculados depois';if(plate.destinationUrl){try{const url=new URL(plate.destinationUrl);urlText.textContent=url.hostname+(url.pathname==='/'?'':'/…');}catch{urlText.textContent='Destino cadastrado';}}else{urlText.textContent=plate.status==='stock'?'Aguardando vínculo':'Sem destino';urlText.className='muted';}preview.append(urlText);if(plate.destinationUrl){const copy=action('Copiar',()=>KTIVAR.copy(plate.destinationUrl,$('#message'),'Destino atual'));copy.className='text-button';copy.setAttribute('aria-label','Copiar destino de '+plate.code);preview.append(copy);}destination.replaceChildren(preview);cell(row, plate.accesses===undefined?'—':new Intl.NumberFormat('pt-BR').format(plate.accesses), 'Acessos');
+      cell(row, '', 'Ações').replaceChildren(action(plate.status==='stock'?'Vincular':'Editar destino',async()=>{if(plate.status==='stock')await openEditor(plate.code,true);else{await view(plate.code);if(viewed===plate.code&&viewedPlate?.status!=='stock'&&$('#viewer').open)$('#view-destination').click();}}));
       $('#rows').append(row);
     }
     $('#empty').hidden = data.items.length > 0;
-    const filtered=KTIVAR.filterSummary($('#filter-summary'),[$('#search'),...document.querySelectorAll('.plate-filters select')],data.items.length,data.hasMore,clearPlateFilters,['from','to','active'].filter(k=>params.has(k)).map(k=>({from:'Desde',to:'Até',active:'Redirect'}[k])+': '+params.get(k)));
+    const filtered=KTIVAR.filterSummary($('#filter-summary'),[$('#search'),...document.querySelectorAll('.plate-filters select')],data.items.length,data.hasMore,clearPlateFilters,plateRouteFilters(params));
     $('#empty').textContent = filtered ? 'Nenhuma placa corresponde aos filtros. Limpe os filtros para consultar as demais placas.' : 'Ainda não há placas. Adicione uma placa ou gere um lote para começar.';
     $('#page').textContent = `Página ${page + 1}`;
     $('#previous').disabled = page === 0;
@@ -85,7 +85,7 @@ async function openEditor(code = null, bind = false) {
     }
     await Promise.all([references('clients', plate?.client), references('products', plate?.product)]);
     fillStatusSelect(form.elements.status, plate?.status);if(!plate){const initial=plateStatuses.find(s=>s.enabled&&s.key==='pending')||plateStatuses.find(s=>s.enabled&&s.key!=='stock'&&!s.redirects);if(initial)form.elements.status.value=initial.key;}syncStockFields();if(bind&&plate?.status==='stock')beginStockBinding();
-    editor.showModal();
+    KTIVAR.context(editor,'Placas',code||'Nova placa');editor.showModal();
   } catch (error) { showError(error); }
 }
 form.addEventListener('submit', async event => {
@@ -123,7 +123,7 @@ async function view(code) {
       }
       (['Cliente','Status','URL permanente','Destino atual'].includes(label)?$('#details'):$('#extra-details')).append(dt, dd);
     }
-    $('#viewer').showModal();
+    KTIVAR.context($('#viewer'),'Placas',plate.code);$('#viewer').showModal();
     loadAnalytics(code);
     loadHistory().catch(error=>{ $('#history-message').textContent=error.message; });
   } catch (error) { showError(error); }
@@ -164,7 +164,7 @@ $('#reference-form').addEventListener('submit', async event => {
 });
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
-loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(params.has('active')){const info=document.createElement('p');info.className='muted route-filter';info.textContent=params.get('active')==='true'?'Redirecionamento habilitado · ': 'Redirecionamento desabilitado · ';const clear=document.createElement('a');clear.href='/plates';clear.textContent='Limpar filtro';info.append(clear);$('.toolbar').after(info);}if(params.has('status'))$('#filter-status').value=params.get('status');if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');if(params.has('from')&&params.has('to')){const p=document.createElement('p');p.className='muted route-filter';p.textContent=`Período: ${params.get('from')} a ${params.get('to')} · Brasília`;const a=document.createElement('a');a.href='/plates';a.textContent='Limpar período';p.append(document.createElement('br'),a);$('.toolbar').after(p);}await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
+loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(params.has('status'))$('#filter-status').value=params.get('status');if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');await load();if(params.get('new')==='1')await openEditor();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
 
 async function loadHistory() {
   $('#history-message').textContent='Carregando histórico…';
@@ -185,14 +185,14 @@ $('#history-next').addEventListener('click',()=>{historyPage++;loadHistory().cat
 $('#view-destination').addEventListener('click',()=>{
   $('#destination-title').textContent=`Editar destino da placa ${viewed}`;
   $('#destination-form').elements.destinationUrl.value=viewedPlate.destinationUrl;
-  $('#destination-message').textContent=''; $('#destination-editor').showModal();
+  $('#destination-message').textContent='';KTIVAR.context($('#destination-editor'),'Placas',viewed); $('#destination-editor').showModal();
 });
 $('#destination-cancel').addEventListener('click',()=>$('#destination-editor').close());
 $('#destination-form').addEventListener('submit',async event=>{
   event.preventDefault(); const button=$('#destination-save');const done=KTIVAR.busy(button,'Salvando destino…');
   try {
     await api(`/plates/${viewed}/destination`,{method:'PATCH',body:JSON.stringify({destinationUrl:event.target.elements.destinationUrl.value,revision:viewedPlate.revision})});
-    $('#destination-editor').close(); $('#viewer').close(); await view(viewed); await load();$('#qr-message').dataset.tone='success';$('#qr-message').textContent='Destino atualizado. O código e o QR permanecem iguais.';
+    $('#destination-editor').close(); $('#viewer').close(); await view(viewed); await load();$('#qr-message').dataset.tone='success';$('#qr-message').textContent=`Destino da ${viewed} atualizado. O código e o QR permanecem iguais.`;
   } catch(error) { $('#destination-message').textContent=error.message; }
   finally {done();}
 });
@@ -262,7 +262,7 @@ function clearPlateFilters(){
  $('#search').value='';for(const n of document.querySelectorAll('.plate-filters input,.plate-filters select'))n.value='';
  history.replaceState(null,'','/plates');document.querySelectorAll('.route-filter').forEach(n=>n.remove());page=0;load();
 }
-KTIVAR.moreFilters(document.querySelector('section.plate-filters'));
+KTIVAR.moreFilters(document.querySelector('section.plate-filters'));KTIVAR.compactToolbar($('.toolbar'),document.querySelector('section.plate-filters'));$('#reload').className='tertiary';$('#configure-statuses').className='tertiary';
 for(const [id,key,label] of [['copy-code','code','Código'],['copy-url','permanentUrl','URL permanente'],['copy-destination','destinationUrl','Destino atual']])$('#'+id).addEventListener('click',()=>{const value=viewedPlate?.[key];if(value)KTIVAR.copy(value,$('#qr-message'),label);});
 
 (()=>{
@@ -271,3 +271,9 @@ for(const [id,key,label] of [['copy-code','code','Código'],['copy-url','permane
   const section=document.createElement('fieldset');section.className='form-section';const legend=document.createElement('legend');legend.textContent=title;const grid=document.createElement('div');grid.className='form-grid';grid.append(...fields.filter(f=>names.includes(f.querySelector('[name]')?.name)));section.append(legend,grid);container.append(section);
  }
 })();
+
+function plateRouteFilters(params){
+ const result=[];const remove=keys=>{const url=new URL(location.href);for(const key of keys)url.searchParams.delete(key);history.replaceState(null,'',url.pathname+url.search);page=0;load();};
+ if(params.has('from')&&params.has('to'))result.push({label:`Período: ${params.get('from')} a ${params.get('to')}`,onRemove:()=>remove(['from','to'])});
+ if(params.has('active'))result.push({label:'Redirect: '+(params.get('active')==='true'?'habilitado':'desabilitado'),onRemove:()=>remove(['active'])});return result;
+}

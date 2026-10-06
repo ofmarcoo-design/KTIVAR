@@ -1,50 +1,68 @@
-# KTIVAR — design para operação
+# KTIVAR — interface operacional B2B
 
-Referência de partida: DESIGN-dell-1996.md, enviado por Marco. A adaptação usa
-blocos de cor chapada, títulos fortes, separação por bordas e uma hierarquia
-visível. Cada tela deve facilitar encontrar, cadastrar, conferir e editar dados.
+A estrutura existente permanece: Operação, Comercial e Sistema. A direção visual
+atual usa sidebar marinho, área de trabalho off-white e superfícies brancas.
+O azul identifica ação principal, foco, links e seleção. Indicadores ficam neutros,
+com cores semânticas discretas em estados e pendências, sempre acompanhadas de texto.
 
-## Paleta
+## Tokens compartilhados
 
-| Papel | Cor | Aplicação |
-| --- | --- | --- |
-| Canvas | #F3F6FB | Fundo da plataforma |
-| Superfície | #FFFFFF | Navegação, cartões, formulários e diálogos |
-| Texto | #17243B | Títulos e conteúdo principal |
-| Texto secundário | #52647D | Contexto, rótulos auxiliares e datas |
-| Azul | #2563EB | Ação principal, seleção e navegação |
-| Azul claro | #E8F1FF / #1E40AF | Informação e indicadores gerais |
-| Verde | #E7F6EC / #166534 | Sucesso, confirmação, conclusão e estado ativo |
-| Amarelo | #FFF4CE / #854D0E | Pendências e tarefas abertas |
-| Vermelho | #FEECEC / #991B1B | Erros, perdas, atrasos e ações destrutivas |
+| Papel | Cor |
+| --- | --- |
+| Sidebar | #0F172A |
+| Texto da sidebar | #CBD5E1; ativo #F8FAFC |
+| Superfície ativa da sidebar | #1E293B |
+| Canvas | #F6F8FC |
+| Superfície | #FFFFFF |
+| Borda | #E2E8F0 |
+| Texto | #0F172A |
+| Texto secundário | #334155 |
+| Metadados | #5B6B82, com contraste no canvas |
+| Ação primária | #2563EB; hover #1D4ED8 |
+| Sucesso | verde discreto |
+| Pendência/estoque | âmbar |
+| Inativo/neutro | cinza |
+| Erro/atraso/ação destrutiva | vermelho |
 
-Toda cor de estado acompanha texto. As cores já configuradas pelo usuário nos
-catálogos permanecem como identificadores. Placas com redirect habilitado usam
-sinalização de sucesso; estoque informa que cliente e destino serão vinculados
-depois. Valores de relatório mantêm o cálculo e o período existentes.
+Cores configuradas de status/etapas são preservadas como identificadores. Estoque
+não representa erro; inativo não usa vermelho automaticamente. Métricas não
+mudam cálculos, filtros, data de referência nem semântica.
 
 ## Componentes
 
-Ação principal azul; controles auxiliares claros com borda; concluir uma tarefa
-verde; cancelar venda, revogar acesso e desabilitar redirect vermelho. Confirmações
-mantêm o botão Cancelar e foco inicial nele. Mensagens usam tom explícito para
-sucesso ou erro. Conteúdo de texto é inserido com textContent.
+Uma ação primária por página. Ações auxiliares usam borda ou texto; exportação é
+terciária. Cabeçalho de 60px com contexto em dois níveis e menu de conta que mostra
+o e-mail real, Configurações e Sair. Não existe link fictício de Minha conta.
+Sidebar recolhível no desktop, drawer no tablet/celular, labels acessíveis e
+preferência de largura local; sem alteração de permissões ou dados de usuário.
 
-Indicadores usam cartões com cabeçalho separado, faixa superior de cor e números
-legíveis. Tabelas preservam cabeçalhos no desktop e rótulos por campo no celular.
-Campos possuem rótulos, escolhas reais, contraste, foco visível e tamanho de fonte
-mínimo de 16px. O QR permanece preto sobre branco para impressão e leitura.
+Toolbar reúne busca com debounce, filtro frequente, Mais filtros e atualização.
+Filtros aplicados possuem chips removíveis e limpeza geral. Resultados e valores
+do Kanban referem-se à página consultada; não apresentam total global inexistente.
 
-Tipografia sans-serif do sistema, títulos com peso forte, bordas de 1px, cantos
-de 6–8px, espaçamento regular e ausência de elementos decorativos que concorram
-com o conteúdo. Apenas diálogos usam sombra para indicar sobreposição.
+Tabelas mantêm cabeçalho discreto, hover, primeira coluna identificável e ações
+contextuais. Nome do cliente e código da placa abrem o registro. URL resumida
+mantém a versão completa no tooltip e na cópia; instalação/vínculos e outros
+campos permanecem na visualização. No celular, tabelas viram cartões rotulados.
+Quadro CRM possui rolagem interna, contagem/estimativa por etapa na página e
+estado vazio compacto com criação na etapa correspondente. Regras já existentes
+de próxima ação obrigatória são refletidas pelos campos do formulário.
+
+Diálogos usam contexto, título, grupos de campos e footer Cancelar/Ação. Foco
+inicial de confirmação destrutiva continua em Cancelar. Clipboard tem confirmação
+e seleção manual se bloqueado. QR segue vetorial, preto sobre branco, codificando
+somente a URL permanente da placa. Campos textuais são inseridos com textContent.
+
+Tipografia do sistema: títulos 28–30px/700, seções 18–20px/600, corpo 14–16px,
+metadados 12–13px. Espaçamentos de 4, 8, 12, 16, 24 e 32px. Transições discretas
+respeitam prefers-reduced-motion. Nenhuma dependência de frontend foi adicionada.
 
 ## Verificação
 
-Validar 320px, 390px, 768px, desktop 1440px e orientação landscape 844×390px.
-Ações devem ter área de toque de pelo menos 44px. Preservar zoom manual e
-rolagem vertical dos diálogos. Inspecionar contraste mínimo de texto de 4.5:1,
-navegação por teclado, foco e informações que dependem de cor.
+Revisar todas as views, menus e diálogos a 320/390/640/768/1440px e em landscape
+844×390px. Targets de 44px, campos de 16px, foco visível, teclado, contraste de
+texto mínimo 4.5:1 e ausência de overflow da página. Rolagem interna de tabelas e
+Kanban é intencional; dados completos continuam acessíveis. Preservar zoom manual.
 
-A implementação fica em public/app.css e nos renderizadores existentes. O design
-não muda a stack, o banco, a autenticação, a permanência do QR nem GET /r/:code.
+A implementação fica em public/app.css, shell.js e renderizadores existentes.
+Não modifica stack, banco, autenticação, APIs, cálculo de analytics, QR ou /r/:code.

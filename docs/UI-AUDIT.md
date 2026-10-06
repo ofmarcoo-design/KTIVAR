@@ -47,3 +47,50 @@ CSP, erros JavaScript, contraste mínimo 4.5:1 e ausência de overflow a
 payload de cadastro agrupado, busca preservada após salvar, cópia e fallback,
 vínculo de estoque e lote com espera, erro e retry com a mesma chave. Os testes
 de interface não inserem registros no banco de produção.
+
+## Interface B2B híbrida — 06/10/2026
+
+Base: main 3ecb982. Revisão das dez áreas administrativas com screenshots e
+navegação em navegador antes da edição. Atritos restantes: sidebar clara e
+métricas coloridas competiam com conteúdo; cabeçalho repetia marca e e-mail;
+toolbars ocupavam linhas separadas; nomes/URLs longos aumentavam linhas e
+quebravam códigos; dashboard repetia intervalos de Analytics; Kanban não mostrava
+contagem/estimativa nem orientava criação em uma coluna vazia.
+
+Padrão global em app.css e shell.js: marinho/off-white/white, métricas neutras,
+escala tipográfica, espaços, sidebar recolhível e drawer existente, cabeçalho com
+contexto, conta real com logout existente, toolbar compacta e chips removíveis,
+tabelas com hover/cabeçalho sticky no scroll interno, diálogos/contexto e estados
+interativos. Nome do cliente abre perfil; telefone ganha formatação de leitura.
+Placas priorizam código/status/cliente/destino/acessos; produto é informação
+secundária do cliente e permanece integral na visualização. Código abre placa,
+estoque oferece Vincular, demais placas oferecem Editar destino. Cópia usa URL
+completa, nunca a versão resumida. Campos continuam acessíveis no modal.
+
+Dashboard: três indicadores reais (clientes cadastrados, placas ativas e acessos
+em 30 dias), estoque e atividades atrasadas pela API já existente, atividade
+recente e quatro atalhos que abrem os formulários atuais. Clientes não foram
+renomeados para ativos, pois a consulta de overview conta todos. Atividades
+paginadas exibem 50+ quando necessário e não inventam total exato. Consulta lenta ou falha nessa
+consulta não bloqueia nem apaga as métricas disponíveis. Analytics mantém Hoje/7/30/Total,
+prioriza ranking e torna a explicação de contagem secundária.
+
+CRM: largura operacional e scroll interno, soma de estimativas dos registros
+carregados (explicitamente nesta página), responsável, próxima ação e indicador
+de compra preservado. Criação no estado vazio seleciona a etapa correspondente.
+Obrigatoriedade de ação/data reflete requiresFollowup existente; fechamento/perda
+mantêm as regras anteriores. Links de atividade recente reutilizam GET/formulários
+existentes para clientes, produtos, vendas, negociações e atividades.
+
+Não implementados: gráficos/tendências sem séries confiáveis, receita nova no
+dashboard, pendências inferidas de clientes, Minha conta sem tela existente,
+command palette, temas personalizáveis e widgets. São elementos sem dados ou
+valor suficiente para esta etapa. Sem backend/migration/dependência de produção.
+
+Validação: build, os 13 testes existentes (incluindo Auth, RLS, migrations,
+transações, redirect e QR) e scripts/verify-responsive.js. Este último percorre
+todas as views, filtros/detalhes/menu expandidos, contraste e overflow em seis
+viewports; cobre criação/edição de cliente, criação/vínculo de placa, destino sem
+mudança do QR, lote com erro/retry idempotente, downloads, chips/períodos,
+sidebar, atalhos, exigência de follow-up/movimentação, settings e login/logout.
+Respostas HTTP controladas nos testes visuais não alteram registros de produção.
