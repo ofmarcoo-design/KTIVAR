@@ -25,7 +25,7 @@ async function api(path, options = {}) {
 const date = value => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
 const delivery = value => value ? value.split('-').reverse().join('/') : '—';
 function cell(row, text, label) { const td = document.createElement('td'); td.textContent = text || '—'; td.dataset.label = label; row.append(td); return td; }
-function action(label, handler) { const button = document.createElement('button'); button.textContent = label; button.className = label==='Desabilitar redirect'?'danger':'secondary'; button.addEventListener('click', handler); return button; }
+function action(label, handler) { const button = document.createElement('button'); button.textContent = label; button.className = label==='Desabilitar redirect'?'danger':'secondary'; button.addEventListener('click',async()=>{const done=KTIVAR.busy(button,'Aguarde…');try{await handler();}catch(e){showError(e);}finally{done();}}); return button; }
 function debounce(fn) { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), 250); }; }
 function showError(error) { $('#message').dataset.tone='danger';$('#message').textContent = error.message; }
 async function load() {
@@ -50,7 +50,8 @@ async function load() {
       $('#rows').append(row);
     }
     $('#empty').hidden = data.items.length > 0;
-    $('#empty').textContent = $('#search').value ? 'Nenhuma placa encontrada para este código.' : 'Nenhuma placa cadastrada. Comece em “Nova placa”.';
+    const filtered=KTIVAR.filterSummary($('#filter-summary'),[$('#search'),...document.querySelectorAll('.plate-filters select')],data.items.length,data.hasMore,clearPlateFilters,['from','to','active'].filter(k=>params.has(k)).map(k=>({from:'Desde',to:'Até',active:'Redirect'}[k])+': '+params.get(k)));
+    $('#empty').textContent = filtered ? 'Nenhuma placa corresponde aos filtros. Limpe os filtros para consultar as demais placas.' : 'Ainda não há placas. Adicione uma placa ou gere um lote para começar.';
     $('#page').textContent = `Página ${page + 1}`;
     $('#previous').disabled = page === 0;
     $('#next').disabled = !data.hasMore;
@@ -89,22 +90,22 @@ async function openEditor(code = null, bind = false) {
 }
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  const button = $('#save'); button.disabled = true; $('#form-message').textContent = '';
+  const button = $('#save'); const done=KTIVAR.busy(button,'Salvando placa…'); $('#form-message').textContent = '';
   try {
     const values = Object.fromEntries(new FormData(form)); delete values.code; if(editing) values.revision=editingRevision;
     const result = await api(editing ? `/plates/${editing}` : '/plates', { method: editing ? 'PATCH' : 'POST', body: JSON.stringify(values) });
     editor.close();
-    page = 0; $('#search').value = '';
+    // Keep the current search, filters and page after saving.
     await load();
     $('#message').dataset.tone='success';$('#message').textContent = `${result.code} salva.`;
   } catch (error) { $('#form-message').textContent = error.message; }
-  finally { button.disabled = false; }
+  finally { done(); }
 });
 async function view(code) {
   try {
     const plate = await api(`/plates/${code}`); viewed = code; viewedPlate=plate; historyPage=0;
-    $('#view-title').textContent = plate.code; $('#details').replaceChildren();$('#view-destination').hidden=plate.status==='stock';$('#view-edit').textContent=plate.status==='stock'?'Vincular placa':'Editar placa';
-    $('#qr-code').textContent = plate.code;
+    $('#view-title').textContent = 'Placa '+plate.code; $('#details').replaceChildren();$('#extra-details').replaceChildren();$('#view-destination').hidden=plate.status==='stock';$('#view-edit').textContent=plate.status==='stock'?'Vincular placa':'Editar placa';
+    $('#qr-code').textContent = plate.code;$('#copy-destination').disabled=!plate.destinationUrl;$('.history-panel').open=false;
     $('.nfc-url').hidden = true;
     $('#nfc-url').value = plate.permanentUrl;
     $('#qr-image').alt = `QR da placa ${plate.code}`;
@@ -120,7 +121,7 @@ async function view(code) {
       if (['URL permanente', 'Destino atual'].includes(label)) {
         try { const url = new URL(value); if (['http:', 'https:'].includes(url.protocol)) { const link = document.createElement('a'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = value; dd.replaceChildren(link); } } catch { /* Show invalid legacy destinations as text. */ }
       }
-      $('#details').append(dt, dd);
+      (['Cliente','Status','URL permanente','Destino atual'].includes(label)?$('#details'):$('#extra-details')).append(dt, dd);
     }
     $('#viewer').showModal();
     loadAnalytics(code);
@@ -153,17 +154,17 @@ for (const type of ['clients', 'products']) {
 }
 $('#reference-cancel').addEventListener('click', () => $('#reference-dialog').close());
 $('#reference-form').addEventListener('submit', async event => {
-  event.preventDefault(); const button = event.target.querySelector('[type=submit]'); button.disabled = true;
+  event.preventDefault(); const button = event.target.querySelector('[type=submit]');const done=KTIVAR.busy(button,'Cadastrando…');
   try {
     const values = Object.fromEntries(new FormData(event.target));
     const saved = await api(`/${referenceType}`, { method: 'POST', body: JSON.stringify(values) });
     await references(referenceType, saved); $('#reference-dialog').close();
   } catch (error) { $('#reference-message').textContent = error.message; }
-  finally { button.disabled = false; }
+  finally { done(); }
 });
 $('#logout').addEventListener('click', async () => { try { await api('/logout', { method: 'POST', body: '{}' }); window.location.assign('/login'); } catch (error) { showError(error); } });
 api('/session').then(data => { $('#email').textContent = data.email; }).catch(showError);
-loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(params.has('active')){const info=document.createElement('p');info.className='muted';info.textContent=params.get('active')==='true'?'Redirecionamento habilitado · ': 'Redirecionamento desabilitado · ';const clear=document.createElement('a');clear.href='/plates';clear.textContent='Limpar filtro';info.append(clear);$('.toolbar').after(info);}if(params.has('status'))$('#filter-status').value=params.get('status');if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');if(params.has('from')&&params.has('to')){const p=document.createElement('p');p.className='muted';p.textContent=`Período: ${params.get('from')} a ${params.get('to')} · Brasília`;const a=document.createElement('a');a.href='/plates';a.textContent='Limpar período';p.append(document.createElement('br'),a);$('.toolbar').after(p);}await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
+loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(params.has('active')){const info=document.createElement('p');info.className='muted route-filter';info.textContent=params.get('active')==='true'?'Redirecionamento habilitado · ': 'Redirecionamento desabilitado · ';const clear=document.createElement('a');clear.href='/plates';clear.textContent='Limpar filtro';info.append(clear);$('.toolbar').after(info);}if(params.has('status'))$('#filter-status').value=params.get('status');if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');if(params.has('from')&&params.has('to')){const p=document.createElement('p');p.className='muted route-filter';p.textContent=`Período: ${params.get('from')} a ${params.get('to')} · Brasília`;const a=document.createElement('a');a.href='/plates';a.textContent='Limpar período';p.append(document.createElement('br'),a);$('.toolbar').after(p);}await load();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
 
 async function loadHistory() {
   $('#history-message').textContent='Carregando histórico…';
@@ -182,17 +183,18 @@ async function loadHistory() {
 $('#history-previous').addEventListener('click',()=>{historyPage--;loadHistory().catch(showError);});
 $('#history-next').addEventListener('click',()=>{historyPage++;loadHistory().catch(showError);});
 $('#view-destination').addEventListener('click',()=>{
+  $('#destination-title').textContent=`Editar destino da placa ${viewed}`;
   $('#destination-form').elements.destinationUrl.value=viewedPlate.destinationUrl;
   $('#destination-message').textContent=''; $('#destination-editor').showModal();
 });
 $('#destination-cancel').addEventListener('click',()=>$('#destination-editor').close());
 $('#destination-form').addEventListener('submit',async event=>{
-  event.preventDefault(); const button=$('#destination-save'); button.disabled=true;
+  event.preventDefault(); const button=$('#destination-save');const done=KTIVAR.busy(button,'Salvando destino…');
   try {
     await api(`/plates/${viewed}/destination`,{method:'PATCH',body:JSON.stringify({destinationUrl:event.target.elements.destinationUrl.value,revision:viewedPlate.revision})});
-    $('#destination-editor').close(); $('#viewer').close(); await view(viewed); await load();
+    $('#destination-editor').close(); $('#viewer').close(); await view(viewed); await load();$('#qr-message').dataset.tone='success';$('#qr-message').textContent='Destino atualizado. O código e o QR permanecem iguais.';
   } catch(error) { $('#destination-message').textContent=error.message; }
-  finally {button.disabled=false;}
+  finally {done();}
 });
 
 async function loadAnalytics(code) {
@@ -238,7 +240,7 @@ async function renderStatuses(){
   const row=document.createElement('div');row.className='status-row';const title=document.createElement('strong');title.textContent=`${item.position}. ${item.name} · ${item.enabled?'disponível':'indisponível'} · redirect ${item.redirects?'habilitado':'desabilitado'}`;
   row.append(title,action('Editar',()=>{editingStatus=item.id;$('#status-title').textContent='Editar status';for(const key of ['name','color','position','enabled'])$('#status-form').elements[key].value=String(item[key]);$('#status-redirect-field').hidden=true;$('#status-message').textContent='';}),action(item.redirects?'Desabilitar redirect':'Habilitar redirect',async()=>{
    if(item.key==='stock'){ $('#status-message').textContent='Vincule cliente e destino em cada placa para habilitar o redirect.';return;}
-   if(!await window.KTIVAR.confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`,{danger:item.redirects}))return;
+   if(!await window.KTIVAR.confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`,{danger:item.redirects,title:'Alterar redirecionamento do status',confirmLabel:item.redirects?'Desabilitar redirect':'Habilitar redirect'}))return;
    try{await api(`/plate-statuses/${item.id}/redirect`,{method:'PATCH',body:JSON.stringify({redirects:!item.redirects,confirmed:true})});await renderStatuses();await load();}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}
   }));$('#status-list').append(row);
  }
@@ -246,12 +248,26 @@ async function renderStatuses(){
 $('#configure-statuses').addEventListener('click',async()=>{newStatus();$('#status-manager').showModal();try{await renderStatuses();}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}});
 $('#status-close').addEventListener('click',()=>$('#status-manager').close());$('#status-new').addEventListener('click',newStatus);
 $('#status-form').addEventListener('submit',async event=>{
- event.preventDefault();const button=event.target.querySelector('[type=submit]');button.disabled=true;
- try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').dataset.tone='success';$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}finally{button.disabled=false;}
+ event.preventDefault();const button=event.target.querySelector('[type=submit]');const done=KTIVAR.busy(button,'Salvando status…');
+ try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').dataset.tone='success';$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}finally{done();}
 });
 
 function syncStockFields(){const stock=form.elements.status.value==='stock';$('#stock-binding').hidden=!stock;$('#client-search').disabled=stock;$('#add-client').disabled=stock;for(const name of ['clientId','destinationUrl']){form.elements[name].required=!stock;form.elements[name].disabled=stock;if(stock)form.elements[name].value='';}}
 function beginStockBinding(){const status=plateStatuses.find(s=>s.enabled&&s.key==='pending')||plateStatuses.find(s=>s.enabled&&s.key!=='stock'&&!s.redirects)||plateStatuses.find(s=>s.enabled&&s.key!=='stock');if(!status){$('#form-message').textContent='Disponibilize um status fora de estoque em Configurar status para vincular esta placa.';return;}form.elements.status.value=status.key;syncStockFields();$('#dates').textContent+=' Vincule o cliente e informe o destino. Confira o status antes de salvar. O código e o QR permanecem iguais.';form.elements.clientId.focus();}
 $('#bind-stock').addEventListener('click',beginStockBinding);
 form.elements.status.addEventListener('change',syncStockFields);
-let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').dataset.tone='info';$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque?`))return;const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').dataset.tone='success';$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. Exporte o estoque em CSV para impressão.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').dataset.tone='danger';$('#batch-message').textContent=e.message;}finally{b.disabled=false;}});
+let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').dataset.tone='info';$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque? As placas serão criadas sem cliente ou destino.`,{title:'Gerar lote de placas',confirmLabel:'Gerar lote'}))return;b.textContent='Gerando placas…';$('#batch-message').textContent='Gerando o lote. Aguarde a confirmação antes de fechar.';const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').dataset.tone='success';$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. O QR já está disponível na visualização de cada placa. Vincule cliente e destino antes de ativar. O CSV contém os códigos e URLs permanentes.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').dataset.tone='danger';$('#batch-message').textContent=e.message;}finally{b.disabled=false;b.textContent='Gerar lote';}});
+
+function clearPlateFilters(){
+ $('#search').value='';for(const n of document.querySelectorAll('.plate-filters input,.plate-filters select'))n.value='';
+ history.replaceState(null,'','/plates');document.querySelectorAll('.route-filter').forEach(n=>n.remove());page=0;load();
+}
+KTIVAR.moreFilters(document.querySelector('section.plate-filters'));
+for(const [id,key,label] of [['copy-code','code','Código'],['copy-url','permanentUrl','URL permanente'],['copy-destination','destinationUrl','Destino atual']])$('#'+id).addEventListener('click',()=>{const value=viewedPlate?.[key];if(value)KTIVAR.copy(value,$('#qr-message'),label);});
+
+(()=>{
+ const container=$('#plate-form > .form-grid');const fields=[...container.children];container.classList.add('grouped-fields');
+ for(const [title,names] of [['Identificação e vínculo',['code','status','clientId','productId']],['Destino e finalidade',['purpose','destinationUrl']],['Instalação e entrega (opcional)',['installationLocation','nfcIdentifier','deliveredAt']]]){
+  const section=document.createElement('fieldset');section.className='form-section';const legend=document.createElement('legend');legend.textContent=title;const grid=document.createElement('div');grid.className='form-grid';grid.append(...fields.filter(f=>names.includes(f.querySelector('[name]')?.name)));section.append(legend,grid);container.append(section);
+ }
+})();

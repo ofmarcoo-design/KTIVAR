@@ -3,7 +3,7 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   const button = form.querySelector('button');
   const message = document.querySelector('#message');
-  button.disabled = true;
+  const label=button.textContent;button.disabled = true;button.textContent='Entrando…';
   message.textContent = '';
   try {
     const values = Object.fromEntries(new FormData(form));
@@ -12,5 +12,5 @@ form.addEventListener('submit', async event => {
     if (!response.ok) throw new Error(data.error || 'Não foi possível entrar.');
     window.location.assign(data.redirect || '/plates');
   } catch (error) { message.textContent = error.message; }
-  finally { button.disabled = false; }
+  finally { button.disabled = false;button.textContent=label; }
 });

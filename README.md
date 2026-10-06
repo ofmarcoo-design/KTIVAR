@@ -322,3 +322,22 @@ Se escolher Em estoque, os vínculos continuam vazios e uma orientação com
 Vincular cliente e destino explica como liberar os campos. A operação somente
 é persistida em Salvar placa; o código e o QR permanecem iguais. Para começar
 a redirecionar, selecione um status com redirect habilitado, como Ativa.
+
+
+### Refinamento de usabilidade
+
+Busca, filtros e página permanecem ao salvar placas. Mais filtros mantém as
+opções secundárias disponíveis; o resumo mostra filtros aplicados e registros
+na página, sem confundir com um total global. Limpar filtros também remove
+períodos vindos de relatórios. Cadastros possuem grupos e títulos específicos;
+perfis e históricos têm detalhes expansíveis. A cópia de código, URL permanente
+e destino informa o resultado e oferece seleção manual se o navegador bloquear
+a área de transferência. Salvar/gerar mostra espera, e confirmações importantes
+nomeiam a ação e sua consequência. A geração em lote mantém a chave existente
+nas tentativas e informa os códigos confirmados, sem alterar QR ou criar
+página de destino automaticamente.
+
+Dashboard destaca a próxima ação sobre estoque real, e relatórios agrupam os
+mesmos indicadores. Tema claro, azul, estados com texto/cor e responsividade
+permanecem. Nenhuma regra de backend, autenticação, banco ou redirect foi alterada.
+Veja docs/UI-AUDIT.md para o escopo e a verificação de interface.
