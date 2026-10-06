@@ -29,7 +29,7 @@
    const settings=document.createElement('a');settings.href='/manage?module=config';settings.textContent='Configurações';panel.append(settings,logout);
    menu.append(summary,panel);account.replaceChildren(menu);
    // Presentation label for the explicitly identified account; other accounts retain their identity.
-   const updateIdentity=()=>{const value=email.textContent.trim();const known=value.toLowerCase()==='ofmarcoo@gmail.com';const label=known?'Marco Ferhati':value||'Conta';name.textContent=label;name.title=label;panelName.textContent=label;secondary.textContent=known?value:'';secondary.title=value;avatar.textContent=known?'MF':value?value.slice(0,2).toUpperCase():'?';summary.setAttribute('aria-label','Menu da conta: '+label);};
+   const updateIdentity=()=>{const value=email.textContent.trim();const known=value.toLowerCase()==='ofmarcoo@gmail.com';const label=known?'Marco Ferratti':value||'Conta';name.textContent=label;name.title=label;panelName.textContent=label;secondary.textContent=known?value:'';secondary.title=value;avatar.textContent=known?'MF':value?value.slice(0,2).toUpperCase():'?';summary.setAttribute('aria-label','Menu da conta: '+label);};
    updateIdentity();new MutationObserver(updateIdentity).observe(email,{childList:true,characterData:true,subtree:true});
   }
   document.addEventListener('click',event=>{for(const menu of document.querySelectorAll('.user-menu[open],.more-filters[open]'))if(!menu.contains(event.target))menu.open=false;});

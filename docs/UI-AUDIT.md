@@ -99,7 +99,7 @@ Respostas HTTP controladas nos testes visuais não alteram registros de produç�
 
 Refinamento sobre a versão existente: SVGs oficiais intactos, assinatura na
 sidebar/login/portal, símbolo na sidebar recolhida e favicon. Topbar permanece
-60px e mantém a grid do conteúdo. Nome Marco Ferhati/MF associado exclusivamente
+60px e mantém a grid do conteúdo. Nome Marco Ferratti/MF associado exclusivamente
 a ofmarcoo@gmail.com na apresentação; e-mail secundário. Outras contas preservam
 sua identidade. Menu tem somente Configurações e Sair. Categorias redundantes
 removidas das views; breadcrumbs corrigidos para Gestão e Visão operacional.

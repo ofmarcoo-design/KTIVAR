@@ -367,7 +367,7 @@ Os SVGs oficiais enviados estão em `public/brand`, preservados sem redesenho.
 A sidebar usa a assinatura horizontal sobre uma base clara e o símbolo ao
 recolher; login e portal usam a mesma assinatura, e o favicon usa o símbolo.
 O cabeçalho compartilhado tem 60px, breadcrumb e menu da conta com opções reais.
-A conta `ofmarcoo@gmail.com` apresenta Marco Ferhati e avatar MF; outras contas
+A conta `ofmarcoo@gmail.com` apresenta Marco Ferratti e avatar MF; outras contas
 mantêm sua identidade. Esse rótulo é somente apresentação, sem modificar Auth.
 Em celular, o nome/e-mail ficam disponíveis no menu para preservar espaço.
 As categorias redundantes acima dos títulos foram removidas.
