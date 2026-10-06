@@ -176,3 +176,5 @@ dialog{border:1px solid var(--border);padding:24px;border-radius:10px;box-shadow
 .module-nav .sidebar-brand{min-height:44px}
 
 .badge.success{background:var(--success-bg);color:var(--success-text);border-color:#aed4bc}
+/* Keep dialog actions available while long forms and details scroll. */
+dialog .form-footer{position:sticky;bottom:-24px;z-index:2;background:var(--surface);margin-left:-24px;margin-right:-24px;margin-bottom:-24px;padding:16px 24px;border-radius:0 0 10px 10px}
