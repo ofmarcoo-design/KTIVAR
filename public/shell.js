@@ -45,6 +45,9 @@
    try{await navigator.clipboard.writeText(value);feedback.dataset.tone='success';feedback.textContent=label+(label.startsWith('URL')?' copiada.':' copiado.');}
    catch{feedback.dataset.tone='warning';feedback.replaceChildren(document.createTextNode('Selecione e copie: '));const input=document.createElement('input');input.readOnly=true;input.value=value;input.setAttribute('aria-label',label+' para copiar');feedback.append(input);input.focus();input.select();}
   },
+  formatDateTime(value){
+   if(!value)return '—';const date=new Date(value);const timeZone='America/Sao_Paulo';return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeZone}).format(date)+' · '+new Intl.DateTimeFormat('pt-BR',{timeStyle:'short',timeZone}).format(date);
+  },
   formatPhone(value){
    if(!value)return '—';let digits=String(value).replace(/\D/g,'');const country=digits.startsWith('55')&&[12,13].includes(digits.length);if(country)digits=digits.slice(2);
    if(![10,11].includes(digits.length))return String(value);return (country?'+55 ':'')+`(${digits.slice(0,2)}) ${digits.slice(2,-4)}-${digits.slice(-4)}`;

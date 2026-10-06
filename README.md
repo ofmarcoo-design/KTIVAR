@@ -371,3 +371,13 @@ A conta `ofmarcoo@gmail.com` apresenta Marco Ferratti e avatar MF; outras contas
 mantêm sua identidade. Esse rótulo é somente apresentação, sem modificar Auth.
 Em celular, o nome/e-mail ficam disponíveis no menu para preservar espaço.
 As categorias redundantes acima dos títulos foram removidas.
+
+### Tipografia oficial
+
+Inter Variable 4.1 é servida localmente em `public/fonts`, com licença OFL e
+proveniência documentadas. Views fazem preload; o CSS usa font-display: swap.
+Não há dependência de CDN, mudança de stack ou nova dependência de produção.
+Tokens comuns padronizam títulos, corpo, tabelas, labels, botões e metadados.
+Códigos usam Inter com zero cortado e numerais tabulares; KPIs têm peso 700.
+Inputs continuam 16px. Logo oficial, paleta, dados, métricas e QR são preservados.
+Timestamps de apresentação usam pt-BR, data · hora e fuso de Brasília.

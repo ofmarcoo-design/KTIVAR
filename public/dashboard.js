@@ -43,7 +43,7 @@
    const title=`${name}${item.entity==='plates'?' '+item.entityId:''} ${created?(item.entity==='sales'?'registrada':feminine?'criada':'criado'):feminine?'atualizada':'atualizado'}`;
    let href;if(item.entity==='plates'&&/^PL-\d{6}$/.test(item.entityId))href='/plates?code='+item.entityId;
    else if(modules[item.entity]&&/^[0-9a-f-]{36}$/i.test(item.entityId))href='/manage?'+new URLSearchParams({module:modules[item.entity],id:item.entityId});
-   const row=href?link('',href,'activity-row'):el('div',undefined,'activity-row');const detail=el('div');detail.append(el('p',title),el('small',new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(item.createdAt))));row.append(el('span',undefined,'activity-dot'),detail);$('#recent').append(row);
+   const row=href?link('',href,'activity-row'):el('div',undefined,'activity-row');const detail=el('div');detail.append(el('p',title),el('small',KTIVAR.formatDateTime(item.createdAt)));row.append(el('span',undefined,'activity-dot'),detail);$('#recent').append(row);
   }
   if(!data.recent.length)$('#recent').append(el('p','Cadastros e alterações recentes aparecerão aqui.','empty-state'));
   $('#top-plates').replaceChildren();

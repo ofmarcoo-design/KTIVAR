@@ -53,8 +53,8 @@ inicial de confirmação destrutiva continua em Cancelar. Clipboard tem confirma
 e seleção manual se bloqueado. QR segue vetorial, preto sobre branco, codificando
 somente a URL permanente da placa. Campos textuais são inseridos com textContent.
 
-Tipografia do sistema: títulos 28–30px/700, seções 18–20px/600, corpo 14–16px,
-metadados 12–13px. Espaçamentos de 4, 8, 12, 16, 24 e 32px. Transições discretas
+Tipografia oficial Inter, hospedada localmente: títulos 28px/700, seções 20px/600,
+corpo 14px/400, tabelas 13px, metadados 12px. Espaçamentos de 4, 8, 12, 16, 24 e 32px. Transições discretas
 respeitam prefers-reduced-motion. Nenhuma dependência de frontend foi adicionada.
 
 ## Verificação
@@ -76,6 +76,47 @@ em texto ao lado da assinatura. Login e portal compartilham a marca.
 
 Topbar de 60px, alinhada aos 28px do conteúdo desktop, 20px no tablet e 16px
 no celular. Breadcrumb discreto à esquerda; menu real da conta à direita.
-Nome tem peso 600; e-mail secundário em 11px; avatar 34px. No celular, avatar
+Nome tem peso 600; e-mail secundário em 12px; avatar 34px. No celular, avatar
 e chevron abrem o menu que preserva nome/e-mail e as ações Configurações/Sair.
 Não adicionar Minha conta, notificações ou pesquisa sem funcionalidade.
+
+## Sistema tipográfico oficial — Inter
+
+Inter Variable 4.1 original em `public/fonts`, com licença OFL incluída. Única
+família da interface; fallback do sistema apenas enquanto carrega/na falha.
+Preload compartilhado nas views e `font-display: swap`; nenhuma CDN externa.
+Logo vetorial permanece separada da fonte da interface e não foi redesenhada.
+A assinatura horizontal mede 136px. Mantida a base clara na sidebar porque
+os arquivos oficiais fornecidos são positivos; não fabricar versão negativa.
+
+| Elemento | Tamanho / peso | Linha |
+| --- | --- | --- |
+| Título de página | 28px / 700; tablet 26px; celular 24px | 36 / 34 / 32px |
+| Seção | 20px / 600 | 28px |
+| Card | 16px / 600 | 24px |
+| Corpo | 14px / 400 | 20px |
+| Labels | 13px / 500 | 18px |
+| Tabela | 13px / 400; principal 500 | 18px |
+| Cabeçalho da tabela | 12px / 600 | 16px |
+| Metadados | 12px / 400 | 16px |
+| Botões | 14px / 500 | 20px |
+| Breadcrumb | 13px / 400; atual 500 | 18px |
+| Status | 12px / 500 | 16px |
+| KPI | 28px / 700 | 34px |
+| Título de KPI | 13px / 600 | 18px |
+
+Tokens puros e semânticos no CSS compartilhado. Pesos aprovados: 400, 500, 600,
+700. Corpo sem tracking; título -.02em; seção -.01em; categorias da sidebar
+11px/500 com .08em (única exceção ao piso auxiliar de 12px). Inputs de 16px
+em todas as telas mantêm o comportamento mobile existente.
+
+Dados usam tabular-nums/lining-nums. Códigos usam Inter com tabular-nums e
+slashed-zero, sem família monoespaçada adicional. Valores BRL, percentuais com
+vírgula, telefones BR e datas em pt-BR permanecem; timestamps são apresentados
+como data · hora no fuso de Brasília. URLs e códigos completos preservados
+na cópia, QR e vínculos; não alterar dados por truncamento visual.
+
+Validar reflow equivalente ao zoom 100%, 125%, 150% e 200% (viewport em CSS
+reduzida proporcionalmente), além de ampliação de texto a 200%, responsividade,
+menus, formulários e carregamento real de Inter. Não confundir emulação de
+reflow com teste manual de zoom em Safari/iPhone.

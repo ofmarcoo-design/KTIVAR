@@ -39,9 +39,10 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox']});
   const page=await browser.newPage({permissions:['clipboard-read','clipboard-write']});page.on('pageerror',error=>failures.push(error.message));page.on('console',message=>{if(message.type()==='error'&&message.text().includes('Content Security Policy'))failures.push(message.text());});
+  if(!process.env.QA_TYPOGRAPHY_ONLY){
   for(const [width,height] of [[320,640],[390,844],[640,900],[768,1024],[1440,900],[844,390]]){
    await page.setViewportSize({width,height});
-   const check=async label=>{const unreadable=await page.evaluate(()=>{
+   const check=async label=>{await page.evaluate(()=>document.fonts.ready);assert.equal(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='Inter'&&f.status==='loaded')),true,'Local Inter font loaded in '+label);const unreadable=await page.evaluate(()=>{
     const rgba=value=>(value.match(/[\d.]+/g)||[]).map(Number);
     const luminance=c=>c.slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
     const background=el=>{const layers=[];for(let n=el;n;n=n.parentElement)layers.unshift(rgba(getComputedStyle(n).backgroundColor));return layers.reduce((base,c)=>{const a=c[3]??1;return base.map((v,i)=>v*(1-a)+(c[i]||0)*a);},[255,255,255]);};
@@ -124,6 +125,22 @@ await page.locator('.kanban-column select').first().selectOption(followupStage.i
   let releaseOverdue,overdueStarted;const overdueReady=new Promise(resolve=>overdueStarted=resolve);await page.route('**/api/workspace/activities?mode=overdue&page=0',async route=>{await new Promise(resolve=>{releaseOverdue=resolve;overdueStarted();});await route.fulfill({status:503,json:{error:'Consulta indisponível.'}});});await page.goto(`http://127.0.0.1:${server.address().port}/dashboard`);await page.locator('#overview-metrics .metric-value').first().waitFor();assert.equal(await page.locator('#overview-metrics .metric-value').count(),3,'Core metrics must render without waiting for optional attention data');await overdueReady;releaseOverdue();await page.waitForFunction(()=>document.querySelector('#attention').textContent.includes('Não foi possível consultar atividades atrasadas.'));assert.equal(await page.locator('#overview-metrics .metric-value').count(),3);
   console.log('PASS shared UI: collapse/account/logout/login, shortcuts/chips/export, client edit, plate create/destination, CRM follow-up/move and settings save.');
   await page.route('**/api/workspace/catalogs/segments',route=>route.fulfill({json:[]}));await page.goto(`http://127.0.0.1:${server.address().port}/manage?module=clients`);await page.locator('#create').click();await page.locator('#record-editor[open]').waitFor();assert.equal(await page.locator('#record-fields [name=segmentId]').evaluate(s=>s.checkValidity()),false);await page.locator('#record-fields').getByText('Nenhuma opção disponível.',{exact:false}).waitFor();await page.locator('#record-fields a[href="/manage?module=config&catalog=segments"]').waitFor();
+  }
+  await page.unroute('**/api/workspace/activities?mode=overdue&page=0');
+  // Browser zoom reflow: a 1440×900 physical viewport exposes fewer CSS pixels as zoom grows.
+  await page.unroute('**/api/workspace/catalogs/segments');
+  for(const zoom of [1,1.25,1.5,2]){
+   await page.setViewportSize({width:Math.floor(1440/zoom),height:Math.floor(900/zoom)});
+   for(const url of ['/dashboard','/plates','/manage?module=clients','/manage?module=deals','/reports','/manage?module=config','/login']){
+    await page.goto(`http://127.0.0.1:${server.address().port}${url}`);await page.waitForLoadState('networkidle');await page.evaluate(()=>document.fonts.ready);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${zoom*100}% zoom reflow: ${url}`);
+    if(url==='/plates'){const code=await page.locator('.plate-code').first().evaluate(n=>({family:getComputedStyle(n).fontFamily,numeric:getComputedStyle(n).fontVariantNumeric}));assert.ok(code.family.startsWith('Inter'));assert.ok(code.numeric.includes('tabular-nums')&&code.numeric.includes('slashed-zero'));await page.locator('#new').click();await page.locator('#editor[open]').waitFor();assert.equal(await page.locator('#editor').evaluate(n=>n.scrollWidth<=n.clientWidth),true,'Zoom form overflow');assert.ok(await page.locator('#save').isVisible());}
+    if(url==='/login')assert.equal(await page.locator('input').first().evaluate(n=>getComputedStyle(n).fontSize),'16px');
+   }
+   console.log(`PASS typography/reflow: ${zoom*100}% equivalent zoom, local Inter and code numerals.`);
+  }
+  // Independently test text resizing to 200% using the shared rem typography tokens.
+  await page.setViewportSize({width:1440,height:900});await page.goto(`http://127.0.0.1:${server.address().port}/plates`);await page.locator('.plate-code').first().waitFor();await page.evaluate(()=>document.documentElement.style.fontSize='200%');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'200% text resize overflow');await page.locator('#new').click();await page.locator('#editor[open]').waitFor();assert.equal(await page.locator('#editor').evaluate(n=>n.scrollWidth<=n.clientWidth),true,'200% text form overflow');assert.ok(await page.locator('#save').isVisible());console.log('PASS 200% text resize: plate list and form retain data/actions.');
   assert.deepEqual(failures,[],'Browser JavaScript errors');
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

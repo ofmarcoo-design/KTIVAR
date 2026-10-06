@@ -22,7 +22,7 @@ async function api(path, options = {}) {
   if (!response.ok) throw new Error(data.error || 'Não foi possível concluir a operação.');
   return data;
 }
-const date = value => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
+const date = value => KTIVAR.formatDateTime(value);
 const delivery = value => value ? value.split('-').reverse().join('/') : '—';
 function cell(row, text, label) { const td = document.createElement('td'); td.textContent = text || '—'; td.dataset.label = label; row.append(td); return td; }
 function action(label, handler) { const button = document.createElement('button'); button.textContent = label; button.className = label==='Desabilitar redirect'?'danger':'secondary'; button.addEventListener('click',async()=>{const done=KTIVAR.busy(button,'Aguarde…');try{await handler();}catch(e){showError(e);}finally{done();}}); return button; }

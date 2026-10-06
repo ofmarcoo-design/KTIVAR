@@ -113,3 +113,27 @@ Também conferida identidade de outra conta para impedir rótulo indevido.
 Build: 25 arquivos JavaScript válidos. npm test: 13/13, incluindo migrations
 e contratos de autenticação, redirect e QR. Nenhuma alteração em Auth, schema,
 APIs, métricas ou hosting.
+
+## Inter e gramática tipográfica — 06/10/2026
+
+Aplicado o briefing Texto colado(20261006-203826).txt à arquitetura existente.
+Inter Variable 4.1 original local, com licença OFL, fonte/proveniência e preload
+em todas as views. Pesos 400/500/600/700, tokens compartilhados, títulos
+28/26/24px, seções 20px, corpo 14px, tabelas 13px, auxiliares 12px. Inputs
+preservam 16px; categorias da sidebar 11px são a exceção explícita do briefing.
+KPIs 28px/700; códigos Inter com numerais tabulares e zero cortado; dados
+numéricos tabulares. Timestamp de apresentação pt-BR: data · hora, Brasília.
+
+Logo Proposta 3 intacta, assinatura 136px. Mantida a base branca da sidebar:
+nenhum arquivo oficial negativo foi fornecido, não se redesenhou a marca.
+Paleta, layout, APIs, Auth, banco, métricas, QR/NFC/redirect permanecem.
+
+Revisão visual de todas as telas administrativas, portal/login e formulários.
+Verificação de font-face realmente carregada, contraste, sem overflow, menus,
+cadastro/edição, lote e QR nos seis viewports existentes. Checagem adicional
+de reflow equivalente a zoom 100/125/150/200% em sete views e formulário de
+placa, e ampliação real de texto a 200% na listagem/formulário. Não equivale
+a um ensaio manual em todos os navegadores/dispositivos. Responses HTTP de
+verificação são controladas; nenhum registro alterado no banco de produção.
+Build 25 JS, npm test 13/13. O teste de navegador recebeu limpeza de intercept
+pendente e espera explícita pela abertura de diálogos antes das asserções.
