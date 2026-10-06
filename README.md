@@ -381,3 +381,32 @@ Tokens comuns padronizam títulos, corpo, tabelas, labels, botões e metadados.
 Códigos usam Inter com zero cortado e numerais tabulares; KPIs têm peso 700.
 Inputs continuam 16px. Logo oficial, paleta, dados, métricas e QR são preservados.
 Timestamps de apresentação usam pt-BR, data · hora e fuso de Brasília.
+
+## PWA instalável — camada base
+
+Manifesto público em `/manifest.webmanifest`, worker em `/service-worker.js`,
+registro isolado em `public/pwa.js` e ícones PNG derivados do símbolo oficial
+(192px, 512px, maskable e Apple Touch 180px). `id`, `start_url` e `scope` são
+relativos à origem, sem domínio fixo. O início `/` preserva o fluxo atual.
+Display standalone usa a identidade existente. Metadados estão somente no
+head das views; nenhum conteúdo, CSS ou fluxo operacional foi refeito.
+Os dois endpoints públicos são registrados pelo módulo separado `modules/pwa.js`.
+
+A instalação usa os recursos nativos: Chrome/Edge pelo menu ou ícone de instalar;
+Safari no iPhone/iPad por Compartilhar → Adicionar à Tela de Início. HTTPS é
+necessário em produção. A disponibilidade da opção depende do navegador/SO.
+Não há instalação automática nem novo botão dentro das telas.
+
+Esta etapa permite instalação, não operação offline. Worker deixa todas as
+requisições passarem pela rede sem interceptar respostas, usar Cache Storage,
+armazenar dados privados ou enfileirar gravações. Login, API, exportações, QR
+e `/r/:code` mantêm os comportamentos originais, inclusive destino atualizado.
+O app instalado continua precisando de internet. Worker e manifesto têm
+Cache-Control no-cache; registro usa updateViaCache none para atualizações.
+
+`npm test` inclui o contrato de manifesto/ícones/worker e mantém os contratos
+existentes. `scripts/verify-pwa.js` valida em Chromium o manifesto, critérios de
+instalação, escopo raiz, requisições novas, POST, redirect alterado e ausência de
+cache privado, com fixtures HTTP controladas e sem tocar dados de produção.
+Usa as mesmas instalações externas de Playwright/Chromium da verificação
+responsiva; nenhuma nova dependência de runtime ou hosting foi necessária.

@@ -5,6 +5,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '32kb' }));
 require('./modules/plates').registerPlates(app);
+require('./modules/pwa').registerPwa(app);
 
 app.get('/r/:code', async (req, res) => {
   // The printed QR always uses this route; never cache a mutable destination.

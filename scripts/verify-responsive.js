@@ -4,7 +4,7 @@ const express=require('express');
 const path=require('node:path');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 (async()=>{
- const app=express();app.use((req,res,next)=>{res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");next();});app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));
+ const app=express();app.use((req,res,next)=>{res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");next();});app.use(express.json());app.use('/assets',express.static(path.join(__dirname,'../public')));require('../modules/pwa').registerPwa(app);
  for(const page of ['login','plates','manage','reports','dashboard','client-portal'])app.get('/'+page,(req,res)=>res.sendFile(path.join(__dirname,`../views/${page}.html`)));
  const statuses=[{id:'00000000-0000-4000-8000-000000000001',key:'active',name:'Ativa',color:'#187446',position:0,enabled:true,redirects:true}];
  const plate={code:'PL-000143',revision:0,status:'active',purpose:'other',clientId:statuses[0].id,client:{id:statuses[0].id,name:'Nome muito longo '.repeat(10),company:'Empresa '.repeat(20)},product:{id:statuses[0].id,name:'Produto '.repeat(20)},installationLocation:'Local '.repeat(60),destinationUrl:'https://example.test/'+ 'destino'.repeat(200),permanentUrl:'https://plates.example.test/r/PL-000143',createdAt:new Date().toISOString()};

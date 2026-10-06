@@ -137,3 +137,21 @@ a um ensaio manual em todos os navegadores/dispositivos. Responses HTTP de
 verificação são controladas; nenhum registro alterado no banco de produção.
 Build 25 JS, npm test 13/13. O teste de navegador recebeu limpeza de intercept
 pendente e espera explícita pela abertura de diálogos antes das asserções.
+
+## PWA instalável — base de 06/10/2026
+
+Camada aditiva: manifesto standalone relativo à origem; ícones PNG derivados
+do SVG oficial sem mudar sua geometria; Apple Touch; script de registro separado;
+worker raiz network pass-through. Head das seis views recebe metadados, sem
+modificar body, componentes, app.css ou scripts de operação. Server registra
+um módulo independente com apenas dois GET públicos.
+
+Não se implementou offline, cache de app/API/QR, fila de gravações, prompt
+customizado ou alteração de Auth/banco/hosting. Instalado mantém conexão real
+para dados e redirects. SVG oficial original permanece intacto.
+
+Verificação: corpos HTML comparados byte a byte com versão anterior; build
+29 JS; npm test 14/14. Chromium confirmou critérios de instalação sem erros,
+manifesto, registro e controle na raiz, PNGs com tamanhos corretos, API/POST
+sem replay, redirecionamento consultando destino novo e falha de API offline
+sem dados de cache. Chrome headless não substitui instalação manual em iOS.
