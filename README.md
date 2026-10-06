@@ -312,3 +312,13 @@ A adaptação reutiliza o CSS e os componentes existentes em todas as views;
 não altera banco, autenticação, cálculo de métricas, QR ou redirect.
 `scripts/verify-responsive.js` também verifica contraste de texto mínimo 4.5:1
 nos componentes inspecionados e confirmação visual de ação destrutiva.
+
+### Vincular placa de estoque
+
+Na listagem, Vincular, e na visualização, Vincular placa, abrem o formulário
+com cliente e destino liberados, inicialmente em Aguardando configuração
+quando esse status estiver disponível. Nova placa também prioriza esse status.
+Se escolher Em estoque, os vínculos continuam vazios e uma orientação com
+Vincular cliente e destino explica como liberar os campos. A operação somente
+é persistida em Salvar placa; o código e o QR permanecem iguais. Para começar
+a redirecionar, selecione um status com redirect habilitado, como Ativa.

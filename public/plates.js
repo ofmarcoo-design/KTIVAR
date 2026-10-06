@@ -46,7 +46,7 @@ async function load() {
       cell(row, plate.product?.name, 'Produto');
       const badge = document.createElement('span'); badge.className = `badge ${plate.status} ${plateStatuses.find(s=>s.key===plate.status)?.redirects?'success':''}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} cell(row, '', 'Status').replaceChildren(badge);
       const destination=cell(row, plate.destinationUrl || 'Sem destino · estoque', 'Destino atual');destination.classList.add('url-cell');const urlText=document.createElement('span');urlText.className='truncate-url';urlText.textContent=destination.textContent;urlText.title=plate.destinationUrl||'Sem destino';destination.replaceChildren(urlText);cell(row, plate.accesses===undefined?'—':new Intl.NumberFormat('pt-BR').format(plate.accesses), 'Acessos');
-      cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action('Editar', () => openEditor(plate.code)));
+      cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action(plate.status==='stock'?'Vincular':'Editar', () => openEditor(plate.code,plate.status==='stock')));
       $('#rows').append(row);
     }
     $('#empty').hidden = data.items.length > 0;
@@ -70,7 +70,7 @@ async function references(type, selected) {
   for (const item of rows) { const option = document.createElement('option'); option.value = item.id; option.textContent = item.company ? `${item.name} · ${item.company}` : item.name; select.append(option); }
   if (previous) select.value = previous.id;
 }
-async function openEditor(code = null) {
+async function openEditor(code = null, bind = false) {
   try {
     const plate = code ? await api(`/plates/${code}`) : null;
     editing = code; editingRevision = plate?.revision;
@@ -83,7 +83,7 @@ async function openEditor(code = null) {
       $('#dates').textContent = `Criada em ${date(plate.createdAt)} · Atualizada em ${date(plate.updatedAt)}`;
     }
     await Promise.all([references('clients', plate?.client), references('products', plate?.product)]);
-    fillStatusSelect(form.elements.status, plate?.status);syncStockFields();
+    fillStatusSelect(form.elements.status, plate?.status);if(!plate){const initial=plateStatuses.find(s=>s.enabled&&s.key==='pending')||plateStatuses.find(s=>s.enabled&&s.key!=='stock'&&!s.redirects);if(initial)form.elements.status.value=initial.key;}syncStockFields();if(bind&&plate?.status==='stock')beginStockBinding();
     editor.showModal();
   } catch (error) { showError(error); }
 }
@@ -130,7 +130,7 @@ async function view(code) {
 $('#qr-image').addEventListener('load', () => { if($('#qr-message').textContent==='Carregando QR…')$('#qr-message').textContent = ''; });
 $('#qr-image').addEventListener('error', () => { $('#qr-message').dataset.tone='danger';$('#qr-message').textContent = 'Não foi possível carregar o QR. Reabra a placa para tentar novamente.'; });
 $('#view-close').addEventListener('click', () => $('#viewer').close());
-$('#view-edit').addEventListener('click', () => { $('#viewer').close(); openEditor(viewed); });
+$('#view-edit').addEventListener('click', () => { $('#viewer').close(); openEditor(viewed,viewedPlate?.status==='stock'); });
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => editor.close());
 $('#new').addEventListener('click', () => openEditor());
 $('#reload').addEventListener('click', load);
@@ -250,6 +250,8 @@ $('#status-form').addEventListener('submit',async event=>{
  try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').dataset.tone='success';$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}finally{button.disabled=false;}
 });
 
-function syncStockFields(){const stock=form.elements.status.value==='stock';for(const name of ['clientId','destinationUrl']){form.elements[name].required=!stock;form.elements[name].disabled=stock;if(stock)form.elements[name].value='';}}
+function syncStockFields(){const stock=form.elements.status.value==='stock';$('#stock-binding').hidden=!stock;$('#client-search').disabled=stock;$('#add-client').disabled=stock;for(const name of ['clientId','destinationUrl']){form.elements[name].required=!stock;form.elements[name].disabled=stock;if(stock)form.elements[name].value='';}}
+function beginStockBinding(){const status=plateStatuses.find(s=>s.enabled&&s.key==='pending')||plateStatuses.find(s=>s.enabled&&s.key!=='stock'&&!s.redirects)||plateStatuses.find(s=>s.enabled&&s.key!=='stock');if(!status){$('#form-message').textContent='Disponibilize um status fora de estoque em Configurar status para vincular esta placa.';return;}form.elements.status.value=status.key;syncStockFields();$('#dates').textContent+=' Vincule o cliente e informe o destino. Confira o status antes de salvar. O código e o QR permanecem iguais.';form.elements.clientId.focus();}
+$('#bind-stock').addEventListener('click',beginStockBinding);
 form.elements.status.addEventListener('change',syncStockFields);
 let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').dataset.tone='info';$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque?`))return;const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').dataset.tone='success';$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. Exporte o estoque em CSV para impressão.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').dataset.tone='danger';$('#batch-message').textContent=e.message;}finally{b.disabled=false;}});
