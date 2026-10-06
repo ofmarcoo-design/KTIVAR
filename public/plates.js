@@ -25,12 +25,12 @@ async function api(path, options = {}) {
 const date = value => value ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
 const delivery = value => value ? value.split('-').reverse().join('/') : '—';
 function cell(row, text, label) { const td = document.createElement('td'); td.textContent = text || '—'; td.dataset.label = label; row.append(td); return td; }
-function action(label, handler) { const button = document.createElement('button'); button.textContent = label; button.className = 'secondary'; button.addEventListener('click', handler); return button; }
+function action(label, handler) { const button = document.createElement('button'); button.textContent = label; button.className = label==='Desabilitar redirect'?'danger':'secondary'; button.addEventListener('click', handler); return button; }
 function debounce(fn) { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), 250); }; }
-function showError(error) { $('#message').textContent = error.message; }
+function showError(error) { $('#message').dataset.tone='danger';$('#message').textContent = error.message; }
 async function load() {
   const id = ++listRequest;
-  $('#message').textContent = 'Carregando placas…';
+  $('#message').dataset.tone='info';$('#message').textContent = 'Carregando placas…';
   try {
     const params=new URLSearchParams(location.search);
     const filters = new URLSearchParams({page,search:$('#search').value,status:$('#filter-status').value,clientId:$('#filter-client').value,productId:$('#filter-product').value});
@@ -44,7 +44,7 @@ async function load() {
       const client = cell(row, plate.client?.name, 'Cliente');
       if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.company; client.append(small); }
       cell(row, plate.product?.name, 'Produto');
-      const badge = document.createElement('span'); badge.className = `badge ${plate.status}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} cell(row, '', 'Status').replaceChildren(badge);
+      const badge = document.createElement('span'); badge.className = `badge ${plate.status} ${plateStatuses.find(s=>s.key===plate.status)?.redirects?'success':''}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} cell(row, '', 'Status').replaceChildren(badge);
       const destination=cell(row, plate.destinationUrl || 'Sem destino · estoque', 'Destino atual');destination.classList.add('url-cell');const urlText=document.createElement('span');urlText.className='truncate-url';urlText.textContent=destination.textContent;urlText.title=plate.destinationUrl||'Sem destino';destination.replaceChildren(urlText);cell(row, plate.accesses===undefined?'—':new Intl.NumberFormat('pt-BR').format(plate.accesses), 'Acessos');
       cell(row, '', 'Ações').replaceChildren(action('Ver', () => view(plate.code)), action('Editar', () => openEditor(plate.code)));
       $('#rows').append(row);
@@ -96,7 +96,7 @@ form.addEventListener('submit', async event => {
     editor.close();
     page = 0; $('#search').value = '';
     await load();
-    $('#message').textContent = `${result.code} salva.`;
+    $('#message').dataset.tone='success';$('#message').textContent = `${result.code} salva.`;
   } catch (error) { $('#form-message').textContent = error.message; }
   finally { button.disabled = false; }
 });
@@ -108,7 +108,7 @@ async function view(code) {
     $('.nfc-url').hidden = true;
     $('#nfc-url').value = plate.permanentUrl;
     $('#qr-image').alt = `QR da placa ${plate.code}`;
-    $('#qr-message').textContent = 'Carregando QR…';
+    $('#qr-message').dataset.tone='info';$('#qr-message').textContent = 'Carregando QR…';
     const qrPath = `/api/plates/${encodeURIComponent(plate.code)}/qr.svg`;
     $('#qr-image').src = qrPath;
     $('#qr-download').href = `${qrPath}?download=1`;
@@ -128,7 +128,7 @@ async function view(code) {
   } catch (error) { showError(error); }
 }
 $('#qr-image').addEventListener('load', () => { if($('#qr-message').textContent==='Carregando QR…')$('#qr-message').textContent = ''; });
-$('#qr-image').addEventListener('error', () => { $('#qr-message').textContent = 'Não foi possível carregar o QR. Reabra a placa para tentar novamente.'; });
+$('#qr-image').addEventListener('error', () => { $('#qr-message').dataset.tone='danger';$('#qr-message').textContent = 'Não foi possível carregar o QR. Reabra a placa para tentar novamente.'; });
 $('#view-close').addEventListener('click', () => $('#viewer').close());
 $('#view-edit').addEventListener('click', () => { $('#viewer').close(); openEditor(viewed); });
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => editor.close());
@@ -228,7 +228,7 @@ async function filterReferences(type){
 for(const type of ['clients','products'])$('#filter-'+(type==='clients'?'client':'product')+'-search').addEventListener('input',debounce(()=>filterReferences(type).catch(showError)));
 $('#copy-nfc').addEventListener('click',async()=>{
  const url=viewedPlate.permanentUrl;
- try{await navigator.clipboard.writeText(url);$('#qr-message').textContent='URL permanente copiada para NFC.';}
+ try{await navigator.clipboard.writeText(url);$('#qr-message').dataset.tone='success';$('#qr-message').textContent='URL permanente copiada para NFC.';}
  catch{$('.nfc-url').hidden=false;$('#nfc-url').value=url;$('#nfc-url').focus();$('#nfc-url').select();$('#qr-message').textContent='Selecione a URL acima e copie para a tag NFC.';}
 });
 function newStatus(){editingStatus=null;$('#status-form').reset();$('#status-title').textContent='Novo status';$('#status-redirect-field').hidden=false;$('#status-message').textContent='';}
@@ -238,18 +238,18 @@ async function renderStatuses(){
   const row=document.createElement('div');row.className='status-row';const title=document.createElement('strong');title.textContent=`${item.position}. ${item.name} · ${item.enabled?'disponível':'indisponível'} · redirect ${item.redirects?'habilitado':'desabilitado'}`;
   row.append(title,action('Editar',()=>{editingStatus=item.id;$('#status-title').textContent='Editar status';for(const key of ['name','color','position','enabled'])$('#status-form').elements[key].value=String(item[key]);$('#status-redirect-field').hidden=true;$('#status-message').textContent='';}),action(item.redirects?'Desabilitar redirect':'Habilitar redirect',async()=>{
    if(item.key==='stock'){ $('#status-message').textContent='Vincule cliente e destino em cada placa para habilitar o redirect.';return;}
-   if(!await window.KTIVAR.confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`))return;
-   try{await api(`/plate-statuses/${item.id}/redirect`,{method:'PATCH',body:JSON.stringify({redirects:!item.redirects,confirmed:true})});await renderStatuses();await load();}catch(e){$('#status-message').textContent=e.message;}
+   if(!await window.KTIVAR.confirm(`${item.redirects?'Desabilitar':'Habilitar'} o redirect de TODAS as placas com o status “${item.name}”?`,{danger:item.redirects}))return;
+   try{await api(`/plate-statuses/${item.id}/redirect`,{method:'PATCH',body:JSON.stringify({redirects:!item.redirects,confirmed:true})});await renderStatuses();await load();}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}
   }));$('#status-list').append(row);
  }
 }
-$('#configure-statuses').addEventListener('click',async()=>{newStatus();$('#status-manager').showModal();try{await renderStatuses();}catch(e){$('#status-message').textContent=e.message;}});
+$('#configure-statuses').addEventListener('click',async()=>{newStatus();$('#status-manager').showModal();try{await renderStatuses();}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}});
 $('#status-close').addEventListener('click',()=>$('#status-manager').close());$('#status-new').addEventListener('click',newStatus);
 $('#status-form').addEventListener('submit',async event=>{
  event.preventDefault();const button=event.target.querySelector('[type=submit]');button.disabled=true;
- try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').textContent=e.message;}finally{button.disabled=false;}
+ try{const data=Object.fromEntries(new FormData(event.target));data.position=Number(data.position);data.enabled=data.enabled==='true';if(editingStatus)delete data.redirects;else data.redirects=data.redirects==='true';await api(editingStatus?`/plate-statuses/${editingStatus}`:'/plate-statuses',{method:editingStatus?'PATCH':'POST',body:JSON.stringify(data)});await renderStatuses();await load();newStatus();$('#status-message').dataset.tone='success';$('#status-message').textContent='Status salvo.';}catch(e){$('#status-message').dataset.tone='danger';$('#status-message').textContent=e.message;}finally{button.disabled=false;}
 });
 
 function syncStockFields(){const stock=form.elements.status.value==='stock';for(const name of ['clientId','destinationUrl']){form.elements[name].required=!stock;form.elements[name].disabled=stock;if(stock)form.elements[name].value='';}}
 form.elements.status.addEventListener('change',syncStockFields);
-let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque?`))return;const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. Exporte o estoque em CSV para impressão.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').textContent=e.message;}finally{b.disabled=false;}});
+let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').dataset.tone='info';$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque?`))return;const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').dataset.tone='success';$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. Exporte o estoque em CSV para impressão.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').dataset.tone='danger';$('#batch-message').textContent=e.message;}finally{b.disabled=false;}});

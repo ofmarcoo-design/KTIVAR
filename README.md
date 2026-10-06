@@ -254,7 +254,7 @@ as demais verificações de segurança do banco passaram.
 
 ## UI e operação — versão 1.2
 
-Tema dark, sidebar com SVGs locais e navegação responsiva em todas as views.
+Sidebar com SVGs locais e navegação responsiva em todas as views. O tema foi atualizado para a adaptação clara descrita abaixo.
 O login administrativo abre `/dashboard`; `/analytics` reutiliza a mesma consulta
 real e destaca acessos. `/reports` preserva os indicadores comerciais e períodos.
 A página principal continua compatível: redireciona para `/plates`.
@@ -297,3 +297,18 @@ classificação mantêm seus dados; ao editá-los, selecione a classificação c
 Filtros preservam Todos; vínculos opcionais permanecem identificados como opcionais.
 Campos obrigatórios vazios impedem salvar. Sem referências disponíveis, o formulário
 informa como cadastrá-las. Configurações impedem desativar a última opção de um grupo.
+
+## Design operacional claro
+
+Referência: DESIGN-dell-1996.md, adaptada para uso diário em KTIVAR.
+Blocos de cor chapada, bordas visíveis e títulos fortes organizam os indicadores.
+Canvas claro, cartões brancos, tipografia sans-serif e azul #2563eb nas ações
+principais e navegação. Azul claro informa; verde indica sucesso/estado ativo;
+amarelo indica pendência; vermelho indica erro, atraso, perda ou ação destrutiva.
+Estado sempre possui texto além da cor. Cores configuradas nos catálogos continuam
+preservadas. Um indicador de estoque amarelo informa que falta vincular a placa.
+
+A adaptação reutiliza o CSS e os componentes existentes em todas as views;
+não altera banco, autenticação, cálculo de métricas, QR ou redirect.
+`scripts/verify-responsive.js` também verifica contraste de texto mínimo 4.5:1
+nos componentes inspecionados e confirmação visual de ação destrutiva.
