@@ -140,10 +140,15 @@ $('#search').addEventListener('input', debounce(() => { page = 0; load(); }));
 for (const type of ['clients', 'products']) {
   const singular = type === 'clients' ? 'client' : 'product';
   $(`#${singular}-search`).addEventListener('input', debounce(() => references(type).catch(error => { $('#form-message').textContent = error.message; })));
-  $(`#add-${singular}`).addEventListener('click', () => {
+  $(`#add-${singular}`).addEventListener('click', async () => {
     referenceType = type; $('#reference-form').reset(); $('#reference-message').textContent = '';
     $('#reference-title').textContent = type === 'clients' ? 'Cadastrar cliente' : 'Cadastrar produto';
-    $('#client-fields').hidden = type !== 'clients'; $('#reference-dialog').showModal();
+    $('#client-fields').hidden = type !== 'clients';$('#reference-classifications').replaceChildren();$('#reference-dialog').showModal();
+    const submit=$('#reference-form [type=submit]');submit.disabled=true;
+    try{for(const [name,title,catalog] of type==='clients'?[['segmentId','Segmento','segments'],['sourceId','Origem','sources']]:[['categoryId','Categoria','categories'],['typeId','Tipo','types']]){
+      const label=document.createElement('label');label.append(title);const select=document.createElement('select');select.name=name;select.required=true;const empty=new Option('Selecione uma opção','');empty.disabled=true;empty.selected=true;select.append(empty);const rows=await api('/workspace/catalogs/'+catalog);for(const row of rows)if(row.enabled)select.append(new Option(row.name,row.id));label.append(select);$('#reference-classifications').append(label);if(select.options.length===1)$('#reference-message').textContent='Não há opções disponíveis. Revise as configurações antes de cadastrar.';
+    }}catch(error){$('#reference-message').textContent=error.message;}finally{submit.disabled=$('#reference-classifications').querySelectorAll('select').length!==2||[...$('#reference-classifications').querySelectorAll('select')].some(s=>s.options.length<2);}
+
   });
 }
 $('#reference-cancel').addEventListener('click', () => $('#reference-dialog').close());

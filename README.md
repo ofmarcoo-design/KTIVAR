@@ -285,3 +285,15 @@ histórico e URLs. Acrescenta `plate_batches`, `application_settings`,
 `client_portal_access` e `plates.batchId`; amplia vínculos nulos somente para
 estoque. Backup privado inclui essas tabelas. O ensaio também aceita exports
 anteriores que não possuíam esses módulos. Veja `docs/UI-AUDIT.md`.
+
+## Opções de cadastro
+
+Os catálogos existentes recebem opções iniciais de segmento, categoria, tags,
+atividade e motivo de perda, incluindo Outro nas classificações. O seed não
+substitui IDs, nomes ou disponibilidade já configurados e pode ser reaplicado.
+Segmento/origem de cliente e categoria/tipo de produto exigem uma escolha no
+cadastro completo e no formulário rápido de Placas. Registros antigos sem
+classificação mantêm seus dados; ao editá-los, selecione a classificação correta.
+Filtros preservam Todos; vínculos opcionais permanecem identificados como opcionais.
+Campos obrigatórios vazios impedem salvar. Sem referências disponíveis, o formulário
+informa como cadastrá-las. Configurações impedem desativar a última opção de um grupo.

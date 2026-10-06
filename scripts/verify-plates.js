@@ -28,9 +28,11 @@ async function request(route, method = 'GET', body, anonymous = false) {
     cookie = cookie.split('; ').filter(value => value.startsWith('ktivar_refresh=')).join('; ');
     assert.equal((await request('/api/session')).response.status, 200);
     assert.ok(cookie.includes('ktivar_access='));
-    const client = await request('/api/clients', 'POST', { name: 'KTIVAR integration test', company: 'temporary', phone: '000' });
+    const classifications={};for(const kind of ['segments','sources','categories','types'])classifications[kind]=(await request('/api/workspace/catalogs/'+kind)).data.find(o=>o.enabled).id;
+    assert.equal((await request('/api/clients','POST',{name:'invalid'})).response.status,400);
+    const client = await request('/api/clients', 'POST', { name: 'KTIVAR integration test', company: 'temporary', phone: '000',segmentId:classifications.segments,sourceId:classifications.sources });
     assert.equal(client.response.status, 201); created.clients.push(client.data.id);
-    const product = await request('/api/products', 'POST', { name: 'KTIVAR integration test' });
+    const product = await request('/api/products', 'POST', { name: 'KTIVAR integration test',categoryId:classifications.categories,typeId:classifications.types });
     assert.equal(product.response.status, 201); created.products.push(product.data.id);
     const values = { clientId: client.data.id, productId: product.data.id, status: 'pending', purpose: 'google_review', installationLocation: 'Balcão teste', destinationUrl: 'https://example.com/test', nfcIdentifier: `test-${Date.now()}`, deliveredAt: '2026-10-05' };
     let plate = await request('/api/plates', 'POST', values);

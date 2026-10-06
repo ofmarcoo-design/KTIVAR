@@ -324,6 +324,10 @@ function registerPlates(app) {
         if (value != null && (typeof value !== 'string' || value.length > 160)) return res.status(400).json({ error: 'Dados do cliente inválidos.' });
         values[field] = value?.trim() || null;
       }
+      for(const field of table==='clients'?['segmentId','sourceId']:['categoryId','typeId']){
+        if(typeof req.body[field]!=='string'||!uuid.test(req.body[field]))return res.status(400).json({error:'Selecione uma classificação válida.'});
+        values[field]=req.body[field];
+      }
       try {
         const rows = await supabase(`/rest/v1/${table}?select=*`, { token: req.supabaseToken, method: 'POST', body: values, prefer: 'return=representation' });
         res.status(201).json(rows[0]);

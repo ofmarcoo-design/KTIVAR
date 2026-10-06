@@ -2,8 +2,8 @@ const {Router}=require('express');
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const catalogs={segments:'client_segments',sources:'client_sources',tags:'tags',categories:'product_categories',types:'product_types','activity-types':'activity_types','loss-reasons':'loss_reasons',stages:'crm_stages'};
 const fields={
- clients:{name:['text',160,true],company:['text',160],phone:['text',160],segmentId:['uuid'],sourceId:['uuid'],ownerId:['uuid'],city:['text',160],state:['state'],address:['text',500],cnpj:['text',30],enabled:['boolean']},
- products:{name:['text',160,true],categoryId:['uuid'],typeId:['uuid'],priceCents:['integer',1000000000],generatesPlate:['boolean'],enabled:['boolean']},
+ clients:{name:['text',160,true],company:['text',160],phone:['text',160],segmentId:['uuid',null,true],sourceId:['uuid',null,true],ownerId:['uuid'],city:['text',160],state:['state'],address:['text',500],cnpj:['text',30],enabled:['boolean']},
+ products:{name:['text',160,true],categoryId:['uuid',null,true],typeId:['uuid',null,true],priceCents:['integer',1000000000],generatesPlate:['boolean'],enabled:['boolean']},
  contacts:{clientId:['uuid',null,true],name:['text',160,true],phone:['text',160],whatsapp:['text',160],email:['email'],instagram:['text',300],website:['url'],enabled:['boolean']}
 };
 const catalogFields={name:['text',100,true],color:['color',null,true],position:['integer',100000,true],enabled:['boolean',null,true]};
@@ -51,7 +51,7 @@ function registerWorkspace(api,supabase){
  router.get('/catalogs/:kind',guarded(async(req,res)=>{const table=Object.hasOwn(catalogs,req.params.kind)?catalogs[req.params.kind]:null;if(!table)return res.status(404).json({error:'Configuração não encontrada.'});res.json(await db(req,table+'?select=*&order=position.asc,name.asc'));}));
  for(const method of ['post','patch'])router[method](method==='post'?'/catalogs/:kind':'/catalogs/:kind/:id',guarded(async(req,res)=>{
   const table=Object.hasOwn(catalogs,req.params.kind)?catalogs[req.params.kind]:null;if(!table)return res.status(404).json({error:'Configuração não encontrada.'});const schema={...catalogFields};if(table==='crm_stages')schema.requiresFollowup=['boolean'];const values=validate(req.body,schema);const q=new URLSearchParams({select:'*'});
-  if(method==='patch'){if(!uuid.test(req.params.id))throw invalid();if(!Number.isSafeInteger(req.body.revision)||req.body.revision<0)return res.status(428).json({error:'Reabra a configuração.'});q.set('id',`eq.${req.params.id}`);q.set('revision',`eq.${req.body.revision}`);}
+  if(method==='patch'){if(!uuid.test(req.params.id))throw invalid();if(values.enabled===false){const remaining=await db(req,table+'?'+new URLSearchParams({select:'id',enabled:'eq.true',id:'neq.'+req.params.id,limit:'1'}));if(!remaining.length)return res.status(409).json({error:'Mantenha pelo menos uma opção disponível neste grupo.'});}if(!Number.isSafeInteger(req.body.revision)||req.body.revision<0)return res.status(428).json({error:'Reabra a configuração.'});q.set('id',`eq.${req.params.id}`);q.set('revision',`eq.${req.body.revision}`);}
   const rows=await db(req,`${table}?${q}`,{method:method.toUpperCase(),body:values,prefer:'return=representation'});if(!rows.length)return res.status(409).json({error:'Configuração alterada por outra sessão.'});res.status(method==='post'?201:200).json(rows[0]);
  }));
  router.post('/contacts/:id/primary',guarded(async(req,res)=>{if(!uuid.test(req.params.id))throw invalid();await db(req,'rpc/set_primary_contact',{method:'POST',body:{p_id:req.params.id}});res.json({ok:true});}));
