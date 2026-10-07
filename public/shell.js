@@ -5,7 +5,7 @@
   const iconIndexes={Dashboard:0,Clientes:1,Placas:2,Analytics:3,Produtos:4,Vendas:5,CRM:8,Atividades:6,Relatórios:9,Configurações:7};
   for(const a of nav.querySelectorAll('a:not(.brand)')){const name=a.textContent;const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');svg.setAttribute('aria-hidden','true');svg.classList.add('nav-icon');const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',paths[iconIndexes[name]??0]);svg.append(path);const label=document.createElement('span');label.className='nav-label';label.textContent=name;a.replaceChildren(svg,label);a.setAttribute('aria-label',name);a.title=name;const url=new URL(a.href);if(url.pathname===location.pathname&&(url.pathname!=='/manage'||url.searchParams.get('module')===(new URLSearchParams(location.search).get('module')||'clients')))a.setAttribute('aria-current','page');}
   const header=document.querySelector('header');const workspace=document.querySelector('main.workspace');
-  document.body.classList.add('app-shell');header.hidden=true;
+  document.body.classList.add('app-shell');
   nav.id='main-navigation';
   const bottom=document.createElement('nav');bottom.className='bottom-nav';bottom.setAttribute('aria-label','Navegação principal');
   for(const label of ['Clientes','Placas','Analytics']){
@@ -29,17 +29,34 @@
   const setCollapsed=value=>{document.body.classList.toggle('nav-collapsed',value);collapse.setAttribute('aria-expanded',String(!value));collapse.textContent=value?'›':'‹ Recolher';collapse.setAttribute('aria-label',value?'Expandir navegação':'Recolher navegação');collapse.title=collapse.getAttribute('aria-label');};
   try{setCollapsed(localStorage.getItem('ktivar.nav.collapsed')==='true');}catch{setCollapsed(false);}
   collapse.addEventListener('click',()=>{const value=!document.body.classList.contains('nav-collapsed');setCollapsed(value);try{localStorage.setItem('ktivar.nav.collapsed',String(value));}catch{/* Navigation still works when storage is unavailable. */}});
+  const modules={clients:['Gestão','Clientes'],products:['Comercial','Produtos'],sales:['Comercial','Vendas'],deals:['Comercial','CRM'],activities:['Comercial','Atividades'],config:['Sistema','Configurações']};
+  const current=location.pathname==='/manage'?modules[new URLSearchParams(location.search).get('module')||'clients']:({'/plates':['Gestão','Placas'],'/dashboard':['Operação','Dashboard'],'/analytics':['Visão operacional','Analytics'],'/reports':['Comercial','Relatórios']}[location.pathname]);
+  if(current){const breadcrumb=document.createElement('nav');breadcrumb.className='app-breadcrumb';breadcrumb.setAttribute('aria-label','Localização');const group=document.createElement('span');group.textContent=current[0];const separator=document.createElement('span');separator.textContent='/';separator.setAttribute('aria-hidden','true');const page=document.createElement('strong');page.textContent=current[1];breadcrumb.append(group,separator,page);header.querySelector(':scope > .brand')?.replaceWith(breadcrumb);}
   const account=header.querySelector('.account');if(account){
    const email=account.querySelector('#email'),logout=account.querySelector('#logout');
-   account.classList.add('settings-account');account.setAttribute('aria-label','Sua conta');
-   const avatar=document.createElement('span');avatar.className='user-avatar';avatar.setAttribute('aria-hidden','true');
-   const identity=document.createElement('div');identity.className='user-identity';
-   const name=document.createElement('strong');name.className='user-name';identity.append(name,email);
-   account.replaceChildren(avatar,identity,logout);
+   const menu=document.createElement('details');menu.className='user-menu';
+   const summary=document.createElement('summary');summary.setAttribute('aria-label','Menu da conta');
+   const avatar=document.createElement('span');avatar.className='user-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent='?';
+   const identity=document.createElement('span');identity.className='user-identity';
+   const name=document.createElement('strong');name.className='user-name';name.textContent='Conta';
+   const secondary=document.createElement('span');secondary.className='user-email';
+   identity.append(name,secondary);
+   const chevron=document.createElement('span');chevron.className='user-chevron';chevron.textContent='⌄';chevron.setAttribute('aria-hidden','true');
+   summary.append(avatar,identity,chevron);
+   const panel=document.createElement('div');panel.className='user-panel';
+   const panelName=document.createElement('strong');panelName.className='user-panel-name';
+   panel.append(panelName,email);
+   const settings=document.createElement('a');settings.href='/manage?module=config';settings.textContent='Configurações';panel.append(settings,logout);
+   menu.append(summary,panel);account.replaceChildren(menu);
    const isSettings=location.pathname==='/manage'&&new URLSearchParams(location.search).get('module')==='config';
-   account.hidden=!isSettings;if(isSettings)workspace.querySelector('.title-row').after(account);else document.body.append(account);
-   // Preserve the actual session nodes and logout handler; only their presentation moves.
-   const updateIdentity=()=>{const value=email.textContent.trim();const known=value.toLowerCase()==='ofmarcoo@gmail.com';const label=known?'Marco Ferratti':value||'Conta';name.textContent=label;name.title=label;email.title=value;avatar.textContent=known?'MF':value?value.slice(0,2).toUpperCase():'?';};
+   const card=isSettings?document.createElement('section'):null;
+   let cardName,cardAvatar,cardIdentity;
+   if(card){card.className='account settings-account';card.setAttribute('aria-label','Sua conta');cardAvatar=avatar.cloneNode(true);cardIdentity=document.createElement('div');cardIdentity.className='user-identity';cardName=name.cloneNode(true);cardIdentity.append(cardName);card.append(cardAvatar,cardIdentity);workspace.querySelector('.title-row').after(card);}
+   // A single email/logout pair retains the existing session and event handlers at either size.
+   const syncAccount=()=>{header.hidden=mobile.matches;if(card){card.hidden=!mobile.matches;if(mobile.matches){cardIdentity.append(email);card.append(logout);}else{panel.insertBefore(email,settings);panel.append(logout);}}menu.open=false;};
+   syncAccount();mobile.addEventListener('change',syncAccount);
+   // Presentation label for the explicitly identified account; other accounts retain their identity.
+   const updateIdentity=()=>{const value=email.textContent.trim();const known=value.toLowerCase()==='ofmarcoo@gmail.com';const label=known?'Marco Ferratti':value||'Conta';name.textContent=label;name.title=label;panelName.textContent=label;secondary.textContent=known?value:'';secondary.title=value;avatar.textContent=known?'MF':value?value.slice(0,2).toUpperCase():'?';summary.setAttribute('aria-label','Menu da conta: '+label);if(card){cardName.textContent=label;cardName.title=label;cardAvatar.textContent=avatar.textContent;}};
    updateIdentity();new MutationObserver(updateIdentity).observe(email,{childList:true,characterData:true,subtree:true});
   }
   document.addEventListener('click',event=>{for(const menu of document.querySelectorAll('.user-menu[open],.more-filters[open]'))if(!menu.contains(event.target))menu.open=false;});

@@ -31,8 +31,9 @@ mudam cálculos, filtros, data de referência nem semântica.
 ## Componentes
 
 Uma ação primária por página. Ações auxiliares usam borda ou texto; exportação é
-terciária. Título e descrição existentes abrem a página sem topbar duplicada. Identidade
-e Sair ficam em Configurações; não existe link fictício de Minha conta.
+terciária. No desktop, cabeçalho original de 60px com breadcrumb e menu da conta:
+nome, e-mail, Configurações e Sair. No mobile, a conta fica em Configurações.
+Não existe link fictício de Minha conta.
 Sidebar recolhível no desktop, drawer no tablet/celular, labels acessíveis e
 preferência de largura local; sem alteração de permissões ou dados de usuário.
 
@@ -74,7 +75,7 @@ cores. A assinatura horizontal recebe uma base branca na sidebar marinho;
 na navegação recolhida, exibir somente o símbolo original. Não duplicar o nome
 em texto ao lado da assinatura. Login e portal compartilham a marca.
 
-Padrão anterior de topbar (substituído pela navegação descrita ao final):
+Padrão de topbar desktop (preservado):
 Topbar de 60px, alinhada aos 28px do conteúdo desktop, 20px no tablet e 16px
 no celular. Breadcrumb discreto à esquerda; menu real da conta à direita.
 Nome tem peso 600; e-mail secundário em 12px; avatar 34px. No celular, avatar
@@ -144,9 +145,8 @@ continua usando somente sua consulta original.
 
 ## Navegação inferior e conta em Configurações
 
-Nas views administrativas, o título existente da página é o único cabeçalho
-visível; a barra superior com breadcrumb e conta foi retirada. Desktop mantém
-a sidebar recolhível. Até 900px, Clientes, Placas e Analytics têm navegação
+Nas views administrativas, desktop mantém o cabeçalho original, breadcrumb,
+menu da conta e sidebar recolhível. Até 900px, a barra superior fica oculta; Clientes, Placas e Analytics têm navegação
 inferior persistente com ícones existentes e rótulos; Menu abre a mesma sidebar
 com todos os módulos, incluindo Dashboard e Configurações. Se a página estiver
 fora dos três atalhos, Menu indica o contexto atual. Não adicionar um quinto
@@ -155,6 +155,6 @@ atalho sem uma tarefa frequente que justifique sua presença.
 Barra considera safe-area e reserva espaço no conteúdo. O drawer tem botão
 Fechar, backdrop, Escape, retorno de foco e ciclo de Tab; conteúdo e barra ficam
 inert durante sua abertura. Redimensionar restaura a navegação adequada.
-Configurações mostra a identidade da sessão, avatar textual, e-mail e o mesmo
+No mobile, Configurações mostra a identidade da sessão, avatar textual, e-mail e o mesmo
 botão Sair com seu handler existente, sem nova página de conta. Login e portal
 permanecem com suas estruturas próprias.

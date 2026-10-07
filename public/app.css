@@ -272,7 +272,7 @@ header{height:max(60px,calc(var(--text-md) * 3 + 12px))}
 .summary-panel .activity-row p,.summary-panel .activity-row small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .summary-stats>.metric-card{border:0;border-radius:0;padding:0;background:transparent;box-shadow:none;min-width:0}
 
-/* Shared mobile navigation; the existing page title is the sole desktop heading. */
+/* Mobile navigation; the original desktop topbar and sidebar remain intact. */
 .app-shell>header[hidden]{display:none}.bottom-nav,.nav-close{display:none}
 .settings-account{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin:0 0 24px;gap:16px;align-items:center}
 .settings-account .user-avatar{display:grid;flex:0 0 40px;width:40px;height:40px}
