@@ -120,3 +120,23 @@ Validar reflow equivalente ao zoom 100%, 125%, 150% e 200% (viewport em CSS
 reduzida proporcionalmente), além de ampliação de texto a 200%, responsividade,
 menus, formulários e carregamento real de Inter. Não confundir emulação de
 reflow com teste manual de zoom em Safari/iPhone.
+
+## Dashboard operacional
+
+Analytics aparece primeiro, com hoje, 7/30 dias e total, junto ao ranking real
+de placas em 30 dias. Não representa visitantes únicos nem avaliações.
+Clientes, placas ativas e estoque formam o panorama operacional: estoque é
+inventário, não alerta. Resultados comerciais usam o relatório existente do
+mês até hoje em Brasília, comparando datas explícitas do intervalo anterior
+de igual duração; vendas canceladas são excluídas. Produtos exibem até três
+resultados por valor vendido. CRM mostra até cinco negociações abertas mais
+recentes, com etapa e estimativa, sem confundir estimativa com receita ou
+apresentar a página consultada como funil global. Acompanhamento reúne até
+quatro atividades atrasadas e auditoria recente. Atalhos preservam os fluxos
+de cadastro existentes.
+
+Resumos complementares carregam independentemente de Analytics e operação.
+Erros não viram totais zero; atualização descarta respostas de ciclos antigos.
+Composição modular usa tokens e componentes compartilhados, sem bibliotecas,
+novas consultas de banco, mudanças de API, autenticação ou redirect. Analytics
+continua usando somente sua consulta original.
