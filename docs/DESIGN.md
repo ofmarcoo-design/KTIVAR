@@ -167,7 +167,7 @@ permanecem com suas estruturas próprias.
   sem arredondar casas excedentes ou usar floats no cálculo de centavos.
 - Quantidade de venda limitada a 1–1000, desconto limitado ao valor do item,
   pelo menos um item; mesmas regras já existentes no backend.
-- Negociação de atividade consultada apenas para o cliente escolhido; troca de
+- Campos de telefone, e-mail e endereço usam autocomplete adequado; quantidade\n  usa teclado numérico. Observação aceita múltiplas linhas e datas opcionais\n  começam vazias. A UF aceita duas letras, sem exigir endereço completo.\n- Negociação de atividade consultada apenas para o cliente escolhido; troca de
   cliente limpa o vínculo anterior. Edições preservam vínculos existentes.
 - Buscas preservam seleções e descartam respostas antigas. Visualização e
   histórico de placa também descartam respostas de consultas anteriores.
