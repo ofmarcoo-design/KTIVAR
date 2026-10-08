@@ -62,8 +62,20 @@
   document.addEventListener('click',event=>{for(const menu of document.querySelectorAll('.user-menu[open],.more-filters[open]'))if(!menu.contains(event.target))menu.open=false;});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){for(const menu of document.querySelectorAll('.user-menu[open],.more-filters[open]')){menu.open=false;menu.querySelector('summary').focus();event.preventDefault();}}});
  }
+ // Shared feedback for static forms and forms opened dynamically, without replacing native validation.
+ const fieldErrors=new WeakMap();let errorNumber=0;
+ const clearFieldError=input=>{const error=fieldErrors.get(input);if(!error)return;error.remove();input.removeAttribute('aria-invalid');const ids=(input.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!==error.id);if(ids.length)input.setAttribute('aria-describedby',ids.join(' '));else input.removeAttribute('aria-describedby');fieldErrors.delete(input);};
+ const showFieldError=input=>{
+  if(!input.matches('input,select,textarea')||!input.form)return;if(input.validity.valid){clearFieldError(input);return;}
+  let error=fieldErrors.get(input);if(!error){error=document.createElement('small');error.className='field-error';error.id='field-error-'+(++errorNumber);error.setAttribute('role','alert');input.after(error);fieldErrors.set(input,error);input.setAttribute('aria-describedby',[(input.getAttribute('aria-describedby')||''),error.id].filter(Boolean).join(' '));}
+  const state=input.validity;error.textContent=state.customError?input.validationMessage:state.valueMissing?(input.tagName==='SELECT'?'Selecione uma opção.':'Preencha este campo.'):state.typeMismatch?(input.type==='email'?'Informe um e-mail como nome@empresa.com.':'Informe uma URL completa, como https://exemplo.com.'):state.rangeUnderflow?`Informe um valor a partir de ${input.min}.`:state.rangeOverflow?`Informe um valor até ${input.max}.`:state.stepMismatch?'Informe um número inteiro.':input.validationMessage;input.setAttribute('aria-invalid','true');
+ };
+ document.addEventListener('invalid',event=>showFieldError(event.target),true);
+ for(const type of ['input','change'])document.addEventListener(type,event=>{if(fieldErrors.has(event.target))showFieldError(event.target);});
+ document.addEventListener('reset',event=>{for(const input of event.target.elements||[])clearFieldError(input);});
  window.KTIVAR={confirm(message,{danger=false,title="Confirmar ação",confirmLabel="Confirmar"}={}){return new Promise(resolve=>{const dialog=document.createElement('dialog');dialog.id='confirmation';const h=document.createElement('h2');h.textContent=title;const p=document.createElement('p');p.textContent=message;const footer=document.createElement('div');footer.className='form-footer';const cancel=document.createElement('button');cancel.className='secondary';cancel.textContent='Cancelar';const ok=document.createElement('button');ok.textContent=confirmLabel;if(danger)ok.className='danger';const finish=value=>{dialog.close();dialog.remove();resolve(value);};cancel.addEventListener('click',()=>finish(false));ok.addEventListener('click',()=>finish(true));dialog.addEventListener('cancel',e=>{e.preventDefault();finish(false);});footer.append(cancel,ok);dialog.append(h,p,footer);document.body.append(dialog);dialog.showModal();cancel.focus();});}};
  Object.assign(window.KTIVAR,{
+  refreshValidation(input){if(fieldErrors.has(input))showFieldError(input);},
   busy(button,label='Salvando…'){
    const text=button.textContent;button.disabled=true;button.textContent=label;button.setAttribute('aria-busy','true');
    return ()=>{button.textContent=text;button.disabled=false;button.removeAttribute('aria-busy');};

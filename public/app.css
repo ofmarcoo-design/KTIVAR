@@ -295,3 +295,5 @@ header{height:max(60px,calc(var(--text-md) * 3 + 12px))}
 .settings-account .user-name{color:var(--text)}
 @media(max-width:900px) and (orientation:landscape){.app-shell .workspace{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}}
 @media(max-width:900px){.bottom-nav [aria-current=page]:hover,.bottom-nav .current-section:hover{color:var(--info-text);background:var(--info-bg)}}
+.field-error{display:block;margin-top:6px;color:var(--danger-text);font-size:var(--text-sm,13px);line-height:1.5}
+[aria-invalid=true]{border-color:var(--danger)}

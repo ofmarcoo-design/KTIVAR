@@ -13,6 +13,9 @@ let historyPage = 0;
 let viewed = null;
 let referenceType = null;
 let listRequest = 0;
+let viewRequest = 0;
+let historyRequest = 0;
+const filterRequests = { clients: 0, products: 0 };
 const referenceRequests = { clients: 0, products: 0 };
 
 async function api(path, options = {}) {
@@ -61,7 +64,7 @@ async function load() {
 async function references(type, selected) {
   const id = ++referenceRequests[type];
   const search = $(`#${type === 'clients' ? 'client' : 'product'}-search`).value;
-  const rows = await api(`/${type}?search=${encodeURIComponent(search)}`);
+  let rows;try{rows=await api(`/${type}?search=${encodeURIComponent(search)}`);}catch(error){if(id===referenceRequests[type])throw error;return;}
   if (id !== referenceRequests[type]) return;
   const select = form.elements[type === 'clients' ? 'clientId' : 'productId'];
   const previous = selected || (select.value ? { id: select.value, name: select.selectedOptions[0].textContent } : null);
@@ -102,8 +105,9 @@ form.addEventListener('submit', async event => {
   finally { done(); }
 });
 async function view(code) {
+  const request = ++viewRequest;
   try {
-    const plate = await api(`/plates/${code}`); viewed = code; viewedPlate=plate; historyPage=0;
+    const plate = await api(`/plates/${code}`); if(request!==viewRequest)return;viewed = code; viewedPlate=plate; historyPage=0;
     $('#view-title').textContent = 'Placa '+plate.code; $('#details').replaceChildren();$('#extra-details').replaceChildren();$('#view-destination').hidden=plate.status==='stock';$('#view-edit').textContent=plate.status==='stock'?'Vincular placa':'Editar placa';
     $('#qr-code').textContent = plate.code;$('#copy-destination').disabled=!plate.destinationUrl;$('.history-panel').open=false;
     $('.nfc-url').hidden = true;
@@ -126,12 +130,14 @@ async function view(code) {
     KTIVAR.context($('#viewer'),'Placas',plate.code);$('#viewer').showModal();
     loadAnalytics(code);
     loadHistory().catch(error=>{ $('#history-message').textContent=error.message; });
-  } catch (error) { showError(error); }
+  } catch (error) { if(request===viewRequest)showError(error); }
 }
 $('#qr-image').addEventListener('load', () => { if($('#qr-message').textContent==='Carregando QR…')$('#qr-message').textContent = ''; });
 $('#qr-image').addEventListener('error', () => { $('#qr-message').dataset.tone='danger';$('#qr-message').textContent = 'Não foi possível carregar o QR. Reabra a placa para tentar novamente.'; });
-$('#view-close').addEventListener('click', () => $('#viewer').close());
-$('#view-edit').addEventListener('click', () => { $('#viewer').close(); openEditor(viewed,viewedPlate?.status==='stock'); });
+const cancelViewRequests=()=>{viewRequest++;historyRequest++;};
+$('#viewer').addEventListener('cancel',cancelViewRequests);
+$('#view-close').addEventListener('click', () => {cancelViewRequests();$('#viewer').close();});
+$('#view-edit').addEventListener('click', () => { cancelViewRequests();$('#viewer').close(); openEditor(viewed,viewedPlate?.status==='stock'); });
 for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', () => editor.close());
 $('#new').addEventListener('click', () => openEditor());
 $('#reload').addEventListener('click', load);
@@ -140,7 +146,8 @@ $('#next').addEventListener('click', () => { page++; load(); });
 $('#search').addEventListener('input', debounce(() => { page = 0; load(); }));
 for (const type of ['clients', 'products']) {
   const singular = type === 'clients' ? 'client' : 'product';
-  $(`#${singular}-search`).addEventListener('input', debounce(() => references(type).catch(error => { $('#form-message').textContent = error.message; })));
+  const refresh=debounce(() => references(type).catch(error => { $('#form-message').textContent = error.message; }));
+  $(`#${singular}-search`).addEventListener('input',()=>{referenceRequests[type]++;refresh();});
   $(`#add-${singular}`).addEventListener('click', async () => {
     referenceType = type; $('#reference-form').reset(); $('#reference-message').textContent = '';
     $('#reference-title').textContent = type === 'clients' ? 'Cadastrar cliente' : 'Cadastrar produto';
@@ -167,8 +174,11 @@ api('/session').then(data => { $('#email').textContent = data.email; }).catch(sh
 loadStatuses().then(async()=>{const params=new URLSearchParams(location.search);if(params.has('status'))$('#filter-status').value=params.get('status');if(/^PL-\d{6}$/.test(params.get('code')||''))$('#search').value=params.get('code');await load();if(params.get('new')==='1')await openEditor();if(params.has('code'))await view(params.get('code'));if(params.get('statuses')==='1')$('#configure-statuses').click();}).catch(showError);
 
 async function loadHistory() {
+  const request=++historyRequest,code=viewed,currentPage=historyPage;
+  $('#history').replaceChildren();
   $('#history-message').textContent='Carregando histórico…';
-  const data=await api(`/plates/${viewed}/destination-history?page=${historyPage}`);
+  let data;try{data=await api(`/plates/${code}/destination-history?page=${currentPage}`);}catch(error){if(request===historyRequest&&viewed===code)$('#history-message').textContent=error.message;return;}
+  if(request!==historyRequest||viewed!==code)return;
   $('#history').replaceChildren();
   for(const item of data.items) {
     const li=document.createElement('li');
@@ -178,7 +188,7 @@ async function loadHistory() {
     li.append(heading,before,after); $('#history').append(li);
   }
   $('#history-message').textContent=data.items.length?'':'Ainda não há mudanças registradas.';
-  $('#history-previous').disabled=historyPage===0; $('#history-next').disabled=!data.hasMore;
+  $('#history-previous').disabled=currentPage===0; $('#history-next').disabled=!data.hasMore;
 }
 $('#history-previous').addEventListener('click',()=>{historyPage--;loadHistory().catch(showError);});
 $('#history-next').addEventListener('click',()=>{historyPage++;loadHistory().catch(showError);});
@@ -221,13 +231,13 @@ async function loadStatuses(){
 }
 for(const id of ['status','client','product'])$('#filter-'+id).addEventListener('change',()=>{page=0;load();});
 async function filterReferences(type){
- const singular=type==='clients'?'client':'product';const select=$('#filter-'+singular);const previous=select.value;
- const rows=await api(`/${type}?search=${encodeURIComponent($('#filter-'+singular+'-search').value)}`);
+ const request=++filterRequests[type];const singular=type==='clients'?'client':'product';const select=$('#filter-'+singular);
+ let rows;try{rows=await api(`/${type}?search=${encodeURIComponent($('#filter-'+singular+'-search').value)}`);}catch(error){if(request===filterRequests[type])throw error;return;}
+ if(request!==filterRequests[type])return;const previous=select.value,selected=select.selectedOptions[0]?.cloneNode(true);
  select.replaceChildren(new Option('Todos',''));for(const row of rows)select.append(new Option(row.name,row.id));
- select.value=rows.some(row=>row.id===previous)?previous:'';
- page=0;load();
+ if(previous&&selected&&!rows.some(row=>row.id===previous))select.append(selected);select.value=previous;
 }
-for(const type of ['clients','products'])$('#filter-'+(type==='clients'?'client':'product')+'-search').addEventListener('input',debounce(()=>filterReferences(type).catch(showError)));
+for(const type of ['clients','products']){const refresh=debounce(()=>filterReferences(type).catch(showError));$('#filter-'+(type==='clients'?'client':'product')+'-search').addEventListener('input',()=>{filterRequests[type]++;refresh();});}
 $('#copy-nfc').addEventListener('click',async()=>{
  const url=viewedPlate.permanentUrl;
  try{await navigator.clipboard.writeText(url);$('#qr-message').dataset.tone='success';$('#qr-message').textContent='URL permanente copiada para NFC.';}
@@ -259,6 +269,7 @@ form.elements.status.addEventListener('change',syncStockFields);
 let batchRequestId=null;$('#batch-open').addEventListener('click',()=>{batchRequestId=crypto.randomUUID();$('#batch-message').dataset.tone='info';$('#batch-message').textContent='';$('#batch-editor').showModal();});$('#batch-close').addEventListener('click',()=>$('#batch-editor').close());$('#batch-form').addEventListener('submit',async event=>{event.preventDefault();const b=$('#batch-save');b.disabled=true;try{const quantity=Number(event.target.elements.quantity.value);if(!await window.KTIVAR.confirm(`Gerar ${quantity} códigos permanentes em estoque? As placas serão criadas sem cliente ou destino.`,{title:'Gerar lote de placas',confirmLabel:'Gerar lote'}))return;b.textContent='Gerando placas…';$('#batch-message').textContent='Gerando o lote. Aguarde a confirmação antes de fechar.';const d=await api('/plate-batches',{method:'POST',body:JSON.stringify({id:batchRequestId,quantity})});$('#batch-message').dataset.tone='success';$('#batch-message').textContent=`${d.quantity} placas geradas: ${d.codes[0]} a ${d.codes.at(-1)}. O QR já está disponível na visualização de cada placa. Vincule cliente e destino antes de ativar. O CSV contém os códigos e URLs permanentes.`;$('#filter-status').value='stock';page=0;await load();}catch(e){$('#batch-message').dataset.tone='danger';$('#batch-message').textContent=e.message;}finally{b.disabled=false;b.textContent='Gerar lote';}});
 
 function clearPlateFilters(){
+ for(const type of ['clients','products'])filterRequests[type]++;
  $('#search').value='';for(const n of document.querySelectorAll('.plate-filters input,.plate-filters select'))n.value='';
  history.replaceState(null,'','/plates');document.querySelectorAll('.route-filter').forEach(n=>n.remove());page=0;load();
 }

@@ -158,3 +158,23 @@ inert durante sua abertura. Redimensionar restaura a navegação adequada.
 No mobile, Configurações mostra a identidade da sessão, avatar textual, e-mail e o mesmo
 botão Sair com seu handler existente, sem nova página de conta. Login e portal
 permanecem com suas estruturas próprias.
+
+## Revisão dos formulários e buscas
+
+- Feedback de validação junto ao campo em `shell.js`, com `aria-invalid`,
+  `aria-describedby` e texto explicativo; preserva validação nativa e dados digitados.
+- Valores monetários aceitam decimal brasileiro e colagem de `R$ 1.234,56`,
+  sem arredondar casas excedentes ou usar floats no cálculo de centavos.
+- Quantidade de venda limitada a 1–1000, desconto limitado ao valor do item,
+  pelo menos um item; mesmas regras já existentes no backend.
+- Negociação de atividade consultada apenas para o cliente escolhido; troca de
+  cliente limpa o vínculo anterior. Edições preservam vínculos existentes.
+- Buscas preservam seleções e descartam respostas antigas. Visualização e
+  histórico de placa também descartam respostas de consultas anteriores.
+- Geração de placa pela venda mantém a confirmação e o código após atualizar
+  o perfil. QR, destino público, autenticação e banco permanecem nos padrões atuais.
+
+`npm test` verifica migrations e regras de negócio.
+`scripts/verify-responsive.js` inclui casos de colagem monetária, limites,
+feedback acessível, vínculos por cliente, buscas concorrentes e confirmação de
+gerar placa, além de revisão das views em seis tamanhos e zoom até 200%.
