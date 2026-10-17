@@ -419,8 +419,10 @@ séries às placas existentes sem alterar código, destino, revisão ou históri
 Novos cadastros, lotes e placas geradas por venda usam o mesmo alocador.
 O espaço comporta 9.000 placas; ao esgotar, novas gerações são recusadas.
 
-O SVG mantém os quatro módulos de margem livre do QR e acrescenta apenas
-um rodapé branco de três módulos. Os quatro dígitos aparecem pequenos,
+O SVG é quadrado, sem cantos arredondados na visualização. Mantém os quatro
+módulos de margem livre do QR e usa um rodapé compacto de dois módulos,
+com um módulo adicional em cada lateral para igualar largura e altura.
+Os quatro dígitos aparecem pequenos,
 em cinza, à direita dessa margem externa; nunca sobre os módulos do QR.
 A visualização e o download usam o mesmo arquivo. Somente a URL permanente
 `/r/PL-XXXXXX` é codificada: série e `destinationUrl` não entram no payload.

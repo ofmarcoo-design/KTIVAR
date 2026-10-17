@@ -102,8 +102,10 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   const svg = await qrResponse.text();
   const expected = await require('qrcode').toString(permanent, {type:'svg',errorCorrectionLevel:'M',margin:4,color:{dark:'#000000',light:'#ffffff'}});
   const size=Number(expected.match(/viewBox="0 0 (\d+) \d+"/)[1]);
-  assert.ok(svg.includes(`viewBox="0 0 ${size} ${size+3}"`));
-  assert.deepEqual([...svg.matchAll(/<path[^>]*>/g)].slice(0,2).map(m=>m[0]),[...expected.matchAll(/<path[^>]*>/g)].map(m=>m[0]),'QR matrix and four-module quiet zone stay intact');
+  assert.ok(svg.includes(`viewBox="0 0 ${size+2} ${size+2}"`));
+  assert.deepEqual([...svg.matchAll(/<path[^>]*>/g)].slice(1,3).map(m=>m[0]),[...expected.matchAll(/<path[^>]*>/g)].map(m=>m[0]),'QR matrix and four-module quiet zone stay intact');
+  assert.match(svg,/<g transform="translate\(1 0\)">/);
+  assert.match(svg,/font-size="1.5"/);
   assert.match(svg,/>4827<\/text>/);
   assert.ok(!svg.includes(plate.destinationUrl));
   assert.notEqual(svg, await require('qrcode').toString(plate.destinationUrl, {type:'svg',errorCorrectionLevel:'M',margin:4}));

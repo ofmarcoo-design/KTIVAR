@@ -28,9 +28,9 @@ test('printed SVG keeps original QR paths and safe quiet zone, with a discreet f
  const url='https://example.test/r/PL-000143',svg=await plateQrSvg(url,4827);
  const original=await require('qrcode').toString(url,{type:'svg',errorCorrectionLevel:'M',margin:4,color:{dark:'#000000',light:'#ffffff'}});
  const size=Number(original.match(/viewBox="0 0 (\d+) \d+"/)[1]);
- assert.ok(svg.includes(`viewBox="0 0 ${size} ${size+3}"`));
- const paths=text=>[...text.matchAll(/<path[^>]*>/g)].map(m=>m[0]);assert.deepEqual(paths(svg).slice(0,2),paths(original));
- assert.match(svg,/font-size="1.9"/);assert.match(svg,/>4827<\/text>/);
+ assert.ok(svg.includes(`viewBox="0 0 ${size+2} ${size+2}"`));
+ const paths=text=>[...text.matchAll(/<path[^>]*>/g)].map(m=>m[0]);assert.deepEqual(paths(svg).slice(1,3),paths(original));
+ assert.match(svg,/font-size="1.5"/);assert.match(svg,/>4827<\/text>/);
  for(const value of [null,999,10000,'4827','<script>'])await assert.rejects(plateQrSvg(url,value));
 });
 
