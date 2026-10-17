@@ -220,7 +220,8 @@ function registerPlates(app) {
       res.json({ ok: true });
     } catch (error) { session(res, null, secureRequest(req)); next(error); }
   });
-  const selection = 'code,serialNumber,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,revision,client:clients(id,name,company,phone),product:products(id,name)';
+  require('./plate-bulk').registerPlateBulk(api, supabase);
+  const selection = 'code,serialNumber,archived,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,revision,client:clients(id,name,company,phone),product:products(id,name)';
   api.get('/plates', async (req, res, next) => {
     const page = Math.max(0, Math.min(100000, Number.parseInt(req.query.page, 10) || 0));
     const query = new URLSearchParams({ select: selection, order: 'createdAt.desc,code.desc', limit: '51', offset: String(page * 50) });
@@ -235,6 +236,9 @@ function registerPlates(app) {
       if (field === 'status' ? !/^[a-z][a-z0-9_-]{0,63}$/.test(value) : !uuid.test(value)) return res.status(400).json({ error: 'Filtro inválido.' });
       query.set(field, `eq.${value}`);
     }
+    const archived = req.query.archived ?? 'false';
+    if (!['false','true','all'].includes(archived)) return res.status(400).json({error:'Filtro de arquivo inválido.'});
+    if (archived !== 'all') query.set('archived', `eq.${archived}`);
     if(req.query.active!==undefined){if(!['true','false'].includes(req.query.active))return res.status(400).json({error:'Filtro de redirecionamento inválido.'});query.set('active',`eq.${req.query.active}`);}
     try {
       if(req.query.from||req.query.to){const {date}=require('./crm');const from=date(req.query.from),to=date(req.query.to);if(to<from)return res.status(400).json({error:'Período inválido.'});query.set('and',`(createdDay.gte.${from},createdDay.lte.${to})`);}

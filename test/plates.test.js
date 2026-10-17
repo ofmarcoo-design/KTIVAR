@@ -18,7 +18,7 @@ test('plate input rejects invalid dates and missing links, preserves optional fi
 });
 
 test('login requires allowlisted user, renews session, and protects APIs and screen', async t => {
-  let allowed = true, portalAllowed=false,lastPlateQuery,lastSalesQuery;
+  let allowed = true, portalAllowed=false,lastPlateQuery,lastSalesQuery,lastBulk;
   const plate = { code: 'PL-000143', serialNumber: 4827, destinationUrl: 'https://destination.invalid/first' };
   const user = { id: '00000000-0000-4000-8000-000000000001', email: 'test@example.com' };
   const database = http.createServer(async (req,res) => {
@@ -42,6 +42,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
       lastPlateQuery=url.searchParams;const code = url.searchParams.get('code');
       return res.end(JSON.stringify(!code || code === `eq.${plate.code}` ? [plate] : []));
     }
+    if(url.pathname === '/rest/v1/rpc/bulk_plate_action'){let text='';for await(const chunk of req)text+=chunk;lastBulk=JSON.parse(text);return res.end(JSON.stringify({action:lastBulk.p_action,updated:lastBulk.p_plates.length,selected:lastBulk.p_plates.length}));}
     if(url.pathname === '/rest/v1/sales'){lastSalesQuery=url.searchParams;return res.end('[]');}
     if(url.pathname === '/auth/v1/logout') {res.statusCode=204;return res.end();}
     if(url.pathname === '/rest/v1/rpc/save_deal') {res.statusCode=409;return res.end(JSON.stringify({code:'PT409',message:'Opportunity changed'}));}
@@ -72,6 +73,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
     });
   };
   assert.equal((await request('/api/plates')).status,401);
+  assert.equal((await request('/api/plates/bulk',{method:'POST',body:{action:'archive',plates:[{code:plate.code,revision:0}]}})).status,401);
   assert.equal((await request('/plates')).headers.get('location'),'/login');
   assert.equal((await request('/api/login',{method:'POST',body:{email:user.email,password:'bad'}})).status,401);
   let response=await request('/api/login',{method:'POST',body:{email:user.email,password:'good'}});
@@ -86,7 +88,16 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.match((await staleDeal.json()).error,/Reabra/);
   assert.equal((await request('/api/plates?search=4827',{cookie})).status,200);
   assert.equal(lastPlateQuery.get('or'),'(code.ilike.*4827*,serialNumber.eq.4827)');
-  const stockExport=await(await request('/api/stock.csv',{cookie})).text();assert.ok(stockExport.includes('Número de série'));assert.ok(stockExport.includes('"4827"'));
+  assert.equal(lastPlateQuery.get('archived'),'eq.false');
+  await request('/api/plates?archived=true',{cookie});assert.equal(lastPlateQuery.get('archived'),'eq.true');
+  await request('/api/plates?archived=all',{cookie});assert.equal(lastPlateQuery.has('archived'),false);
+  assert.equal((await request('/api/plates?archived=anything',{cookie})).status,400);
+  const bulk={action:'archive',plates:[{code:plate.code,revision:0}]};
+  assert.equal((await request('/api/plates/bulk',{cookie,method:'POST',body:bulk})).status,200);
+  assert.deepEqual(lastBulk,{p_action:'archive',p_plates:bulk.plates});
+  assert.equal((await request('/api/plates/bulk',{cookie,method:'POST',body:bulk,origin:'https://evil.test'})).status,403);
+  assert.equal((await request('/api/plates/bulk',{cookie,method:'POST',body:{...bulk,plates:[...bulk.plates,...bulk.plates]}})).status,400);
+  const stockExport=await(await request('/api/stock.csv',{cookie})).text();assert.ok(stockExport.includes('Número de série'));assert.ok(stockExport.includes('"4827"'));assert.equal(lastPlateQuery.get('archived'),'eq.false');
   assert.equal((await request('/api/workspace/sales?search=Padaria',{cookie})).status,200);
   assert.equal(lastSalesQuery.get('client.or'),'(name.ilike.*Padaria*,company.ilike.*Padaria*)');assert.ok(lastSalesQuery.get('select').includes('client:clients!inner'));
   for(const items of [[null],[[]],[1],[{}]])assert.equal((await request('/api/workspace/sales',{cookie,method:'POST',body:{id:user.id,clientId:user.id,soldAt:'2026-10-17',items}})).status,400);

@@ -300,3 +300,13 @@ header{height:max(60px,calc(var(--text-md) * 3 + 12px))}
 /* Keep dialog context readable when record names are long. */
 .dialog-context>:first-child{flex-shrink:0;white-space:nowrap}
 @media(max-width:900px){#profile .dialog-title h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
+
+/* Plate selection reuses the existing list and remains available in mobile cards. */
+.plate-bulk{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 16px;margin:12px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.plate-bulk label{margin:0}.plate-bulk>label:has(select){min-width:180px;flex:1}.plate-bulk>span{font-size:var(--text-sm);color:var(--muted)}
+.plate-bulk .select-page,.plate-selection{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer}
+.plate-selection{margin:0 4px 0 0;min-width:32px;vertical-align:middle;justify-content:center}
+.plate-bulk input[type=checkbox],.plate-selection input[type=checkbox]{width:20px;height:20px;min-height:20px;padding:0;margin:0;flex-shrink:0;accent-color:var(--primary)}
+.plate-bulk input:focus-visible,.plate-selection input:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.plates-table th:first-child{width:170px}
+@media(max-width:650px){.plate-bulk{padding:12px;gap:8px}.plate-bulk .select-page{flex:1 1 100%}.plate-bulk>label:has(select){flex-basis:100%;min-width:0}.plate-bulk>button{flex:1}.plate-bulk>span{flex-basis:100%}}

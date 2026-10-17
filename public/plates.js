@@ -13,6 +13,9 @@ let historyPage = 0;
 let viewed = null;
 let referenceType = null;
 let listRequest = 0;
+let visiblePlates = [];
+const selectedPlates = new Map();
+let bulkPending = false;
 let viewRequest = 0;
 let historyRequest = 0;
 const filterRequests = { clients: 0, products: 0 };
@@ -32,26 +35,33 @@ function action(label, handler) { const button = document.createElement('button'
 function debounce(fn) { let timer; return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), 250); }; }
 function showError(error) { $('#message').dataset.tone='danger';$('#message').textContent = error.message; }
 async function load() {
+  if (bulkPending) return;
+  visiblePlates=[];selectedPlates.clear();updatePlateSelection();
   const id = ++listRequest;
   $('#message').dataset.tone='info';$('#message').textContent = 'Carregando placas…';
   try {
     const params=new URLSearchParams(location.search);
-    const filters = new URLSearchParams({page,search:$('#search').value,status:$('#filter-status').value,clientId:$('#filter-client').value,productId:$('#filter-product').value});
+    const filters = new URLSearchParams({page,search:$('#search').value,status:$('#filter-status').value,clientId:$('#filter-client').value,productId:$('#filter-product').value,archived:$('#filter-archive').value||'false'});
     for(const key of ['from','to','active'])if(params.get(key))filters.set(key,params.get(key));
     const data = await api(`/plates?${filters}`);
     if (id !== listRequest) return;
+    visiblePlates=data.items;selectedPlates.clear();
     $('#rows').replaceChildren();
     for (const plate of data.items) {
       const row = document.createElement('tr');
       const code=action(plate.code,()=>view(plate.code));code.className='text-link plate-code';code.setAttribute('aria-label','Ver placa '+plate.code);cell(row,'','Código').replaceChildren(code);if(plate.serialNumber){const serial=document.createElement('small');serial.textContent='Série '+plate.serialNumber;row.firstElementChild.append(serial);}
+      const selection=document.createElement('label');selection.className='plate-selection';
+      const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.dataset.plateCode=plate.code;checkbox.setAttribute('aria-label','Selecionar '+plate.code);
+      checkbox.addEventListener('change',()=>{if(checkbox.checked)selectedPlates.set(plate.code,{code:plate.code,revision:plate.revision});else selectedPlates.delete(plate.code);updatePlateSelection();});selection.append(checkbox);row.firstElementChild.prepend(selection);
       const client = cell(row,'','Cliente');const clientName=document.createElement('span');clientName.className='plate-client-name';clientName.textContent=plate.client?.company||plate.client?.name||'Sem cliente';clientName.title=clientName.textContent;client.replaceChildren(clientName);
       if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.name;small.title=plate.client.name;client.append(small); }
       if(plate.product?.name){const product=document.createElement('small');product.textContent=plate.product.name;product.title=plate.product.name;client.append(product);}
-      const badge = document.createElement('span'); badge.className = `badge ${plate.status} ${plateStatuses.find(s=>s.key===plate.status)?.redirects?'success':''}`; badge.textContent = statusLabels[plate.status];const color=plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} const statusCell=cell(row, '', 'Status');statusCell.replaceChildren(badge);row.insertBefore(statusCell,client);
+      const badge = document.createElement('span'); badge.className = `badge ${plate.status} ${plateStatuses.find(s=>s.key===plate.status)?.redirects?'success':''}`; badge.textContent = plate.archived?'Arquivada':statusLabels[plate.status];if(plate.archived)badge.className='badge inactive';const color=plate.archived?'#64748b':plateStatuses.find(s=>s.key===plate.status)?.color;if(/^#[0-9a-f]{6}$/i.test(color||'')){const dot=document.createElement('span');dot.className='status-color';dot.style.backgroundColor=color;dot.setAttribute('aria-hidden','true');badge.prepend(dot);} const statusCell=cell(row, '', 'Status');statusCell.replaceChildren(badge);row.insertBefore(statusCell,client);
       const destination=cell(row,'','Destino atual');destination.classList.add('url-cell');const preview=document.createElement('div');preview.className='destination-preview';const urlText=document.createElement('span');urlText.title=plate.destinationUrl||'Cliente e destino serão vinculados depois';if(plate.destinationUrl){try{const url=new URL(plate.destinationUrl);urlText.textContent=url.hostname+(url.pathname==='/'?'':'/…');}catch{urlText.textContent='Destino cadastrado';}}else{urlText.textContent=plate.status==='stock'?'Aguardando vínculo':'Sem destino';urlText.className='muted';}preview.append(urlText);if(plate.destinationUrl){const copy=action('Copiar',()=>KTIVAR.copy(plate.destinationUrl,$('#message'),'Destino atual'));copy.className='text-button';copy.setAttribute('aria-label','Copiar destino de '+plate.code);preview.append(copy);}destination.replaceChildren(preview);cell(row, plate.accesses===undefined?'—':new Intl.NumberFormat('pt-BR').format(plate.accesses), 'Acessos');
       cell(row, '', 'Ações').replaceChildren(action(plate.status==='stock'?'Vincular':'Editar destino',async()=>{if(plate.status==='stock')await openEditor(plate.code,true);else{await view(plate.code);if(viewed===plate.code&&viewedPlate?.status!=='stock'&&$('#viewer').open)$('#view-destination').click();}}));
       $('#rows').append(row);
     }
+    updatePlateSelection();
     $('#empty').hidden = data.items.length > 0;
     const filtered=KTIVAR.filterSummary($('#filter-summary'),[$('#search'),...document.querySelectorAll('.plate-filters select')],data.items.length,data.hasMore,clearPlateFilters,plateRouteFilters(params));
     $('#empty').textContent = filtered ? 'Nenhuma placa corresponde aos filtros. Limpe os filtros para consultar as demais placas.' : 'Ainda não há placas. Adicione uma placa ou gere um lote para começar.';
@@ -118,7 +128,7 @@ async function view(code) {
     $('#qr-image').src = qrPath;
     $('#qr-download').href = `${qrPath}?download=1`;
     $('#qr-download').download = `${plate.code}.svg`;
-    const fields = [ ['Número de série', plate.serialNumber], ['Cliente', plate.client?.name], ['Empresa', plate.client?.company], ['Telefone', plate.client?.phone], ['Produto', plate.product?.name], ['Status', statusLabels[plate.status]], ['Finalidade', purposeLabels[plate.purpose]], ['Instalação', plate.installationLocation], ['URL permanente', plate.permanentUrl], ['Destino atual', plate.destinationUrl], ['Identificador QR', plate.code], ['Identificador NFC', plate.nfcIdentifier], ['Entrega', delivery(plate.deliveredAt)], ['Criada em', date(plate.createdAt)], ['Atualizada em', date(plate.updatedAt)] ];
+    const fields = [ ['Número de série', plate.serialNumber], ['Cliente', plate.client?.name], ['Empresa', plate.client?.company], ['Telefone', plate.client?.phone], ['Produto', plate.product?.name], ['Status', plate.archived?'Arquivada · '+statusLabels[plate.status]:statusLabels[plate.status]], ['Finalidade', purposeLabels[plate.purpose]], ['Instalação', plate.installationLocation], ['URL permanente', plate.permanentUrl], ['Destino atual', plate.destinationUrl], ['Identificador QR', plate.code], ['Identificador NFC', plate.nfcIdentifier], ['Entrega', delivery(plate.deliveredAt)], ['Criada em', date(plate.createdAt)], ['Atualizada em', date(plate.updatedAt)] ];
     for (const [label, value] of fields) {
       const dt = document.createElement('dt'); dt.textContent = label;
       const dd = document.createElement('dd'); dd.textContent = value || '—';
@@ -229,7 +239,7 @@ async function loadStatuses(){
  plateStatuses=await api('/plate-statuses');statusLabels=Object.fromEntries(plateStatuses.map(s=>[s.key,s.name]));
  fillStatusSelect($('#filter-status'),null,true);fillStatusSelect(form.elements.status);syncStockFields();
 }
-for(const id of ['status','client','product'])$('#filter-'+id).addEventListener('change',()=>{page=0;load();});
+for(const id of ['status','client','product','archive'])$('#filter-'+id).addEventListener('change',()=>{page=0;load();});
 async function filterReferences(type){
  const request=++filterRequests[type];const singular=type==='clients'?'client':'product';const select=$('#filter-'+singular);
  let rows;try{rows=await api(`/${type}?search=${encodeURIComponent($('#filter-'+singular+'-search').value)}`);}catch(error){if(request===filterRequests[type])throw error;return;}
@@ -273,7 +283,7 @@ function clearPlateFilters(){
  $('#search').value='';for(const n of document.querySelectorAll('.plate-filters input,.plate-filters select'))n.value='';
  history.replaceState(null,'','/plates');document.querySelectorAll('.route-filter').forEach(n=>n.remove());page=0;load();
 }
-KTIVAR.moreFilters(document.querySelector('section.plate-filters'));KTIVAR.compactToolbar($('.toolbar'),document.querySelector('section.plate-filters'));$('#reload').className='tertiary';$('#configure-statuses').className='tertiary';
+KTIVAR.moreFilters(document.querySelector('section.plate-filters'),2);KTIVAR.compactToolbar($('.toolbar'),document.querySelector('section.plate-filters'));$('#reload').className='tertiary';$('#configure-statuses').className='tertiary';
 for(const [id,key,label] of [['copy-code','code','Código'],['copy-url','permanentUrl','URL permanente'],['copy-destination','destinationUrl','Destino atual']])$('#'+id).addEventListener('click',()=>{const value=viewedPlate?.[key];if(value)KTIVAR.copy(value,$('#qr-message'),label);});
 
 (()=>{
@@ -288,3 +298,34 @@ function plateRouteFilters(params){
  if(params.has('from')&&params.has('to'))result.push({label:`Período: ${params.get('from')} a ${params.get('to')}`,onRemove:()=>remove(['from','to'])});
  if(params.has('active'))result.push({label:'Redirect: '+(params.get('active')==='true'?'habilitado':'desabilitado'),onRemove:()=>remove(['active'])});return result;
 }
+
+
+function updatePlateSelection() {
+ const count=selectedPlates.size;
+ $('#bulk-action').closest('label').hidden=!count;
+ for(const id of ['bulk-apply','bulk-clear','selection-count'])$('#'+id).hidden=!count;
+ $('#selection-count').textContent=count?`${count} selecionada${count===1?'':'s'}`:'Nenhuma selecionada';
+ $('#select-page').disabled=bulkPending||!visiblePlates.length;
+ $('#select-page').checked=!!visiblePlates.length&&count===visiblePlates.length;
+ $('#select-page').indeterminate=count>0&&count<visiblePlates.length;
+ for(const id of ['bulk-action','bulk-apply','bulk-clear'])$('#'+id).disabled=bulkPending||!count;
+ for(const input of document.querySelectorAll('[data-plate-code]')){input.disabled=bulkPending||!visiblePlates.length;input.checked=selectedPlates.has(input.dataset.plateCode);}
+}
+$('#select-page').addEventListener('change',event=>{
+ selectedPlates.clear();if(event.target.checked)for(const plate of visiblePlates)selectedPlates.set(plate.code,{code:plate.code,revision:plate.revision});updatePlateSelection();
+});
+$('#bulk-clear').addEventListener('click',()=>{selectedPlates.clear();updatePlateSelection();});
+$('#bulk-apply').addEventListener('click',async()=>{
+ if(bulkPending||!selectedPlates.size)return;
+ const action=$('#bulk-action').value,plates=[...selectedPlates.values()];
+ const selected=visiblePlates.filter(p=>selectedPlates.has(p.code));
+ if(['activate','deactivate'].includes(action)&&selected.some(p=>p.archived||!p.clientId||!p.destinationUrl)){showError(new Error('Restaure as placas arquivadas e vincule cliente e destino antes de alterar o redirecionamento. Nenhuma placa foi alterada.'));return;}
+ const messages={archive:'Arquivar desativa o redirecionamento, preserva todos os dados e retira as placas da listagem padrão. Você poderá restaurá-las depois.',restore:'Restaurar recupera o status anterior. Placas com status de redirecionamento ativo voltarão a redirecionar.',activate:'As placas passarão ao status Ativa e redirecionarão para seus destinos atuais.',deactivate:'As placas passarão ao status Inativa e deixarão de redirecionar para seus destinos.'};
+ const labels={archive:'Arquivar',restore:'Restaurar',activate:'Ativar',deactivate:'Desativar'};
+ if(!await KTIVAR.confirm(`${labels[action]} ${plates.length} placa(s)? ${messages[action]}`,{title:'Ação em massa',confirmLabel:labels[action],danger:action==='archive'||action==='deactivate'}))return;
+ bulkPending=true;updatePlateSelection();$('#message').dataset.tone='info';$('#message').textContent='Aplicando ação. Aguarde…';
+ try{
+  const result=await api('/plates/bulk',{method:'POST',body:JSON.stringify({action,plates})});
+  bulkPending=false;await load();$('#message').dataset.tone='success';$('#message').textContent=`${result.updated} placa(s) atualizada(s). Nenhum registro foi apagado.`;
+ }catch(error){showError(error);}finally{bulkPending=false;updatePlateSelection();}
+});

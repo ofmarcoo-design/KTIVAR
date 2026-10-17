@@ -444,3 +444,30 @@ Falhas de rede/consulta encerram a verificação com erro; não são tratadas co
 resultado limpo. O CI executa essas verificações em push/PR e permite execução
 manual. O relatório e os limites da revisão estão em
 [docs/AUDIT-2026-10-17.md](docs/AUDIT-2026-10-17.md).
+
+
+## Seleção e arquivamento de placas
+
+A listagem permite selecionar uma ou todas as placas da página (até 50) e
+arquivar, restaurar, ativar ou desativar o redirecionamento, com confirmação.
+A seleção é limpa ao atualizar, pesquisar, trocar filtros ou página.
+`POST /api/plates/bulk` reutiliza sessão, autorização e proteção de origem;
+a RPC `bulk_plate_action` executa uma única transação, respeita RLS, bloqueia
+as linhas em ordem e verifica a revisão de todas antes de gravar. Qualquer
+conflito, placa ausente ou vínculo inválido cancela toda a operação.
+
+`plates.archived` mantém o status anterior, cliente, produto, destino, código,
+série e histórico. Arquivar força `active=false` no banco, inclusive se a
+configuração do status mudar depois. Restaurar volta a aplicar a regra do
+status anterior: uma placa anteriormente ativa poderá voltar a redirecionar.
+Ativar/desativar em massa exige placas não arquivadas com cliente e destino;
+usa os status existentes `active`/`inactive`, se disponíveis e coerentes.
+
+O filtro Arquivo oferece Não arquivadas (padrão), Arquivadas e Todas.
+As arquivadas ficam fora do estoque para exportação, dos totais operacionais
+de placas/estoque, da contagem de placas na lista de clientes e do indicador
+de novas placas dos relatórios. A visualização do cliente identifica suas
+placas arquivadas. Vendas e acessos históricos não são apagados ou recalculados.
+O backup JSON inclui o campo; backups anteriores assumem `archived=false`.
+A migration `plate_bulk_archive` é aditiva e não arquiva registros existentes.
+Nenhum registro é excluído e códigos/séries arquivados não são reutilizados.
