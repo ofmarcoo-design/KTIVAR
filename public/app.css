@@ -297,3 +297,6 @@ header{height:max(60px,calc(var(--text-md) * 3 + 12px))}
 @media(max-width:900px){.bottom-nav [aria-current=page]:hover,.bottom-nav .current-section:hover{color:var(--info-text);background:var(--info-bg)}}
 .field-error{display:block;margin-top:6px;color:var(--danger-text);font-size:var(--text-sm,13px);line-height:1.5}
 [aria-invalid=true]{border-color:var(--danger)}
+/* Keep dialog context readable when record names are long. */
+.dialog-context>:first-child{flex-shrink:0;white-space:nowrap}
+@media(max-width:900px){#profile .dialog-title h2{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}

@@ -8,13 +8,13 @@ const path = require('node:path');
 test('public QR route resolves current destination and handles unavailable plates', async (t) => {
   let rows = [{ code: 'PL-000143', active: true, destinationUrl: 'https://example.com/first' }];
   let databaseStatus = 200;
-  let lookupCount = 0;
+  let lookupCount = 0, lastRecorded;
   const database = http.createServer(async (req, res) => {
     lookupCount++;
     const url = new URL(req.url, 'http://localhost');
     assert.equal(url.pathname, '/rest/v1/rpc/resolve_plate_access');
     let body='';for await(const part of req)body+=part;
-    const input=JSON.parse(body);assert.equal(input.p_code,'PL-000143');assert.equal(typeof input.p_record,'boolean');
+    const input=JSON.parse(body);assert.equal(input.p_code,'PL-000143');assert.equal(typeof input.p_record,'boolean');lastRecorded=input.p_record;
     assert.equal(req.headers.apikey, 'sb_publishable_test');
     assert.equal(req.headers.authorization, undefined);
     res.writeHead(databaseStatus, { 'Content-Type': 'application/json' });
@@ -52,6 +52,8 @@ test('public QR route resolves current destination and handles unavailable plate
   assert.equal(response.status, 302);
   assert.equal(response.headers.get('location'), 'https://example.com/first');
   assert.equal(response.headers.get('cache-control'), 'no-store');
+
+  assert.equal(lastRecorded,true);const head=await fetch(`${base}/r/PL-000143`,{method:'HEAD',redirect:'manual'});assert.equal(head.status,302);assert.equal(lastRecorded,false);assert.equal(await head.text(),'');
 
   rows[0].destinationUrl = 'https://example.org/current?review=1';
   response = await request();

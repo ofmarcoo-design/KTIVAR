@@ -150,9 +150,11 @@ function validatePlate(body, allowedStatuses = statuses) {
 }
 
 function registerPlates(app) {
-  app.use(['/login', '/plates', '/manage', '/reports', '/dashboard', '/analytics', '/portal', '/assets', '/api'], (req, res, next) => {
+  app.disable('x-powered-by');
+  app.use((req, res, next) => {
     res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Frame-Options', 'DENY');
     res.set('Referrer-Policy', 'no-referrer');
     next();
   });
@@ -335,7 +337,8 @@ function registerPlates(app) {
   }
   api.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
-    res.status(error.status || 503).json({ error: error.message || 'Operação indisponível.' });
+    const expected=Number.isInteger(error.status)&&error.status>=400&&error.status<=599;
+    res.status(expected?error.status:503).json({ error: expected?error.message:'Operação temporariamente indisponível.' });
   });
   app.use('/api', api);
   app.use((error, req, res, next) => {

@@ -429,3 +429,13 @@ A série pode ser consultada na listagem/detalhes e na busca de placas.
 O CSV de estoque e o backup JSON preservam o número. A restauração de
 exports antigos, anteriores a esse campo, gera séries novas para essas placas.
 Autenticação, analytics, hosting e redirecionamento permanecem inalterados.
+
+## Verificação de segurança e revisão final
+
+Execute `npm run security` além de `npm run build` e `npm test`.
+O comando consulta npm audit e avisos revisados do GitHub para cada dependência
+direta fixada, sem considerar avisos oficialmente retirados como falhas ativas.
+Falhas de rede/consulta encerram a verificação com erro; não são tratadas como
+resultado limpo. O CI executa essas verificações em push/PR e permite execução
+manual. O relatório e os limites da revisão estão em
+[docs/AUDIT-2026-10-17.md](docs/AUDIT-2026-10-17.md).

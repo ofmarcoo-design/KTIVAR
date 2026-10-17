@@ -66,6 +66,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
+  res.set('Cache-Control','no-store');
   res.status(200).json({
     app: 'online',
     timestamp: new Date().toISOString()
@@ -73,6 +74,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/health/database', async (req, res) => {
+  res.set('Cache-Control','no-store');
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
@@ -85,31 +87,11 @@ app.get('/health/database', async (req, res) => {
   }
 
   try {
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/health_check?id=eq.1&select=status,checked_at`,
-      {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`
-        }
-      }
-    );
-
-    if (!response.ok) {
-      const details = await response.text();
-      throw new Error(`Supabase HTTP ${response.status}: ${details}`);
-    }
-
-    const rows = await response.json();
-    const row = rows[0] || null;
-
-    return res.status(200).json({
-      app: 'online',
-      database: row?.status || 'online',
-      checked_at: row?.checked_at || null
-    });
+    const rows=await require('./modules/plates').supabase('/rest/v1/health_check?id=eq.1&select=status');
+    if(!Array.isArray(rows)||rows.length!==1||rows[0]?.status!=='online')throw new Error('Health record unavailable');
+    return res.status(200).json({app:'online',database:'online',checked_at:new Date().toISOString()});
   } catch (error) {
-    console.error('Supabase health check failed:', error.message);
+    console.error('Supabase health check failed:', error.status||'unavailable');
 
     return res.status(503).json({
       app: 'online',
@@ -129,7 +111,9 @@ app.use((error,req,res,next)=>{
  if(res.headersSent)return next(error);
  console.error('Request failed:',error.type||error.code||'unexpected');
  res.set('Cache-Control','no-store');
- if(req.path.startsWith('/api/'))return res.status(500).json({error:'Operação temporariamente indisponível.'});
+ const status=Number.isInteger(error.status)&&error.status>=400&&error.status<500?error.status:500;
+ if(req.path.startsWith('/api/'))return res.status(status).json({error:status<500?'Requisição inválida.':'Operação temporariamente indisponível.'});
+ if(status<500)return res.status(status).type('text/plain').send('Requisição inválida.');
  res.status(500).type('text/plain').send('Página temporariamente indisponível. Tente novamente.');
 });
 
