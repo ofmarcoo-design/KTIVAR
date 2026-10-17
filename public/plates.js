@@ -16,14 +16,15 @@ let listRequest = 0;
 let visiblePlates = [];
 const selectedPlates = new Map();
 let bulkPending = false;
+let qrDownloadPending = false;
 let viewRequest = 0;
 let historyRequest = 0;
 const filterRequests = { clients: 0, products: 0 };
 const referenceRequests = { clients: 0, products: 0 };
 
-async function api(path, options = {}) {
+async function api(path, options = {}, format = 'json') {
   const response = await fetch(`/api${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers }, cache: 'no-store' });
-  const data = await response.json();
+  const data = format === 'blob' && response.ok ? await response.blob() : await response.json();
   if ([401, 403].includes(response.status)) { window.location.assign('/login'); throw new Error('Entre novamente para continuar.'); }
   if (!response.ok) throw new Error(data.error || 'Não foi possível concluir a operação.');
   return data;
@@ -303,12 +304,13 @@ function plateRouteFilters(params){
 function updatePlateSelection() {
  const count=selectedPlates.size;
  $('#bulk-action').closest('label').hidden=!count;
- for(const id of ['bulk-apply','bulk-clear','selection-count'])$('#'+id).hidden=!count;
+ for(const id of ['bulk-apply','bulk-download','bulk-clear','selection-count'])$('#'+id).hidden=!count;
  $('#selection-count').textContent=count?`${count} selecionada${count===1?'':'s'}`:'Nenhuma selecionada';
  $('#select-page').disabled=bulkPending||!visiblePlates.length;
  $('#select-page').checked=!!visiblePlates.length&&count===visiblePlates.length;
  $('#select-page').indeterminate=count>0&&count<visiblePlates.length;
- for(const id of ['bulk-action','bulk-apply','bulk-clear'])$('#'+id).disabled=bulkPending||!count;
+ for(const id of ['bulk-action','bulk-apply','bulk-download','bulk-clear'])$('#'+id).disabled=bulkPending||!count;
+ $('#bulk-download').disabled=bulkPending||qrDownloadPending||!count;
  for(const input of document.querySelectorAll('[data-plate-code]')){input.disabled=bulkPending||!visiblePlates.length;input.checked=selectedPlates.has(input.dataset.plateCode);}
 }
 $('#select-page').addEventListener('change',event=>{
@@ -328,4 +330,18 @@ $('#bulk-apply').addEventListener('click',async()=>{
   const result=await api('/plates/bulk',{method:'POST',body:JSON.stringify({action,plates})});
   bulkPending=false;await load();$('#message').dataset.tone='success';$('#message').textContent=`${result.updated} placa(s) atualizada(s). Nenhum registro foi apagado.`;
  }catch(error){showError(error);}finally{bulkPending=false;updatePlateSelection();}
+});
+
+
+$('#bulk-download').addEventListener('click',async()=>{
+ if(bulkPending||qrDownloadPending||!selectedPlates.size)return;
+ const codes=[...selectedPlates.keys()];qrDownloadPending=true;updatePlateSelection();
+ const done=KTIVAR.busy($('#bulk-download'),'Preparando ZIP…');
+ $('#message').dataset.tone='info';$('#message').textContent=`Preparando ${codes.length} QR(s) para download…`;
+ try{
+  const blob=await api('/plates/qr.zip',{method:'POST',body:JSON.stringify({codes})},'blob');
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='ktivar-qrs.zip';link.hidden=true;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  $('#message').dataset.tone='success';$('#message').textContent=`Download de ${codes.length} QR(s) iniciado. O ZIP contém um SVG por placa, identificado pelo código e pela série.`;
+ }catch(error){showError(error);}finally{done();qrDownloadPending=false;updatePlateSelection();}
 });

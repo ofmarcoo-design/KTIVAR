@@ -40,7 +40,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
     if(url.pathname === '/rest/v1/plate_access') return res.end(JSON.stringify(allowed?[{userId:user.id}]:[]));
     if(url.pathname === '/rest/v1/plates') {
       lastPlateQuery=url.searchParams;const code = url.searchParams.get('code');
-      return res.end(JSON.stringify(!code || code === `eq.${plate.code}` ? [plate] : []));
+      return res.end(JSON.stringify(!code || code === `eq.${plate.code}` || (code.startsWith('in.(')&&code.slice(4,-1).split(',').includes(plate.code)) ? [plate] : []));
     }
     if(url.pathname === '/rest/v1/rpc/bulk_plate_action'){let text='';for await(const chunk of req)text+=chunk;lastBulk=JSON.parse(text);return res.end(JSON.stringify({action:lastBulk.p_action,updated:lastBulk.p_plates.length,selected:lastBulk.p_plates.length}));}
     if(url.pathname === '/rest/v1/sales'){lastSalesQuery=url.searchParams;return res.end('[]');}
@@ -111,6 +111,17 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.match(qrResponse.headers.get('content-type'), /^image\/svg\+xml/);
   assert.equal(qrResponse.headers.get('cache-control'), 'no-store');
   const svg = await qrResponse.text();
+  const zipRequest={cookie,host,origin:`https://${host}`,method:'POST',body:{codes:[plate.code]}};
+  const zipResponse=await request('/api/plates/qr.zip',zipRequest);
+  assert.equal(zipResponse.status,200);assert.match(zipResponse.headers.get('content-type'),/^application\/zip/);
+  assert.equal(zipResponse.headers.get('cache-control'),'no-store');assert.match(zipResponse.headers.get('content-disposition'),/attachment; filename="ktivar-qrs.zip"/);
+  assert.equal(lastPlateQuery.get('select'),'code,serialNumber');assert.equal(lastPlateQuery.get('code'),`in.(${plate.code})`);
+  const zipFiles=require('fflate').unzipSync(new Uint8Array(await zipResponse.arrayBuffer()));
+  assert.deepEqual(Object.keys(zipFiles),['PL-000143-4827.svg']);assert.equal(require('fflate').strFromU8(zipFiles['PL-000143-4827.svg']),svg);
+  assert.equal((await request('/api/plates/qr.zip',{...zipRequest,cookie:''})).status,401);
+  assert.equal((await request('/api/plates/qr.zip',{...zipRequest,origin:'https://evil.example.test'})).status,403);
+  for(const codes of [[],[plate.code,plate.code],['../escape'],Array.from({length:51},(_,i)=>'PL-'+String(i).padStart(6,'0'))])assert.equal((await request('/api/plates/qr.zip',{...zipRequest,body:{codes}})).status,400);
+  assert.equal((await request('/api/plates/qr.zip',{...zipRequest,body:{codes:[plate.code,'PL-999999']}})).status,404);
   const expected = await require('qrcode').toString(permanent, {type:'svg',errorCorrectionLevel:'M',margin:2,color:{dark:'#000000',light:'#ffffff'}});
   const size=Number(expected.match(/viewBox="0 0 (\d+) \d+"/)[1]);
   assert.ok(svg.includes(`viewBox="0 0 ${size+2} ${size+2}"`));
@@ -128,7 +139,11 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   try {
     process.env.PUBLIC_ORIGIN='https://canonical.example.test';
     assert.equal((await(await request('/api/plates/PL-000143',{cookie,host})).json()).permanentUrl,'https://canonical.example.test/r/PL-000143');
+    const canonicalZip=await request('/api/plates/qr.zip',zipRequest);
+    const canonicalFiles=require('fflate').unzipSync(new Uint8Array(await canonicalZip.arrayBuffer()));
+    assert.equal(require('fflate').strFromU8(canonicalFiles['PL-000143-4827.svg']),await require('../modules/plate-qr').plateQrSvg('https://canonical.example.test/r/PL-000143',4827));
     process.env.PUBLIC_ORIGIN='https://canonical.example.test/path';
+    assert.equal((await request('/api/plates/qr.zip',zipRequest)).status,503);
     assert.equal((await request('/api/plates/PL-000143',{cookie,host})).status,503);
   } finally {if(oldOrigin===undefined)delete process.env.PUBLIC_ORIGIN;else process.env.PUBLIC_ORIGIN=oldOrigin;}
   const download = await request('/api/plates/PL-000143/qr.svg?download=1', {cookie,host});
@@ -144,6 +159,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.equal((await request('/api/plates',{cookie:'ktivar_access=fake'})).status,401);
   assert.equal((await request('/api/plates',{method:'POST',cookie,origin:'https://other.invalid',body:{}})).status,403);
   allowed=false;
+  assert.equal((await request('/api/plates/qr.zip',{cookie,method:'POST',body:{codes:[plate.code]}})).status,403);
   assert.equal((await request('/api/plates',{cookie})).status,403);
   assert.equal((await request('/api/plates/PL-000143/qr.svg',{cookie})).status,403);
   assert.equal((await request('/api/login',{method:'POST',body:{email:user.email,password:'good'}})).status,403);

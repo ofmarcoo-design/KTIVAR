@@ -221,6 +221,7 @@ function registerPlates(app) {
     } catch (error) { session(res, null, secureRequest(req)); next(error); }
   });
   require('./plate-bulk').registerPlateBulk(api, supabase);
+  require('./plate-qr-download').registerPlateQrDownload(api, supabase, permanentPlateUrl);
   const selection = 'code,serialNumber,archived,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,revision,client:clients(id,name,company,phone),product:products(id,name)';
   api.get('/plates', async (req, res, next) => {
     const page = Math.max(0, Math.min(100000, Number.parseInt(req.query.page, 10) || 0));

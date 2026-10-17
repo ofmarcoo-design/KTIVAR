@@ -471,3 +471,22 @@ placas arquivadas. Vendas e acessos históricos não são apagados ou recalculad
 O backup JSON inclui o campo; backups anteriores assumem `archived=false`.
 A migration `plate_bulk_archive` é aditiva e não arquiva registros existentes.
 Nenhum registro é excluído e códigos/séries arquivados não são reutilizados.
+
+
+## Download de QRs selecionados
+
+Na área de seleção de Placas, “Baixar QRs (ZIP)” prepara um único arquivo com
+um SVG por placa marcada, até 50 por download. “Selecionar esta página” inclui
+as placas visíveis; outras páginas não são incluídas implicitamente. O botão
+aparece apenas com seleção, adapta-se ao mobile e mantém os itens marcados
+após baixar ou em caso de erro.
+
+`POST /api/plates/qr.zip` recebe somente códigos únicos `PL-XXXXXX`, reutiliza
+login/autorização/proteção de origem e consulta apenas `code,serialNumber`.
+Se alguma placa não estiver disponível, o download inteiro é recusado.
+Todos os SVGs são gerados antes da resposta, usando o mesmo gerador e domínio
+público do download individual. Cada arquivo é nomeado `PL-XXXXXX-1234.svg`.
+A biblioteca `fflate` está fixada em 0.8.3 no servidor; nenhum script externo
+é carregado no navegador. A resposta ZIP usa `Cache-Control: no-store`.
+Não altera banco, status, QR, série, histórico, destino ou métricas. O payload
+do QR continua exclusivamente `https://<domínio-público>/r/PL-XXXXXX`.
