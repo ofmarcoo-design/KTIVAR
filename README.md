@@ -96,7 +96,7 @@ novamente no banco existente.
 
 A visualização de cada placa mostra o QR, o código, a URL permanente e o
 destino atual. “Baixar QR para impressão (SVG)” entrega um arquivo vetorial,
-preto sobre branco, com margem de quatro módulos, sem perda de resolução.
+preto sobre branco, com margem compacta de dois módulos, sem perda de resolução.
 
 A URL codificada é exclusivamente `https://<domínio-público>/r/PL-XXXXXX`.
 O host vem da requisição da aplicação, sem domínio fixo. `PUBLIC_ORIGIN`
@@ -419,12 +419,15 @@ séries às placas existentes sem alterar código, destino, revisão ou históri
 Novos cadastros, lotes e placas geradas por venda usam o mesmo alocador.
 O espaço comporta 9.000 placas; ao esgotar, novas gerações são recusadas.
 
-O SVG é quadrado, sem cantos arredondados na visualização. Mantém os quatro
-módulos de margem livre do QR e usa um rodapé compacto de dois módulos,
+O SVG é quadrado, sem cantos arredondados na visualização. Usa dois módulos
+de margem branca no arquivo e um rodapé compacto de dois módulos,
 com um módulo adicional em cada lateral para igualar largura e altura.
 Os quatro dígitos aparecem pequenos,
 em cinza, à direita dessa margem externa; nunca sobre os módulos do QR.
-A visualização e o download usam o mesmo arquivo. Somente a URL permanente
+A visualização e o download usam o mesmo arquivo. Na arte impressa, mantenha
+fundo branco ao redor para completar pelo menos quatro módulos livres de
+interferência; a margem compacta do arquivo não substitui esse respiro.
+Valide a leitura na impressão em tamanho final. Somente a URL permanente
 `/r/PL-XXXXXX` é codificada: série e `destinationUrl` não entram no payload.
 
 A série pode ser consultada na listagem/detalhes e na busca de placas.

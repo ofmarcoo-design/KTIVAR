@@ -24,9 +24,9 @@ test('printed serials are unique, four digits, immutable, private and exhausted 
  await db.exec('reset role;set role anon');await assert.rejects(db.query('select "serialNumber" from plates'));await assert.rejects(db.query('select private.next_plate_serial()'));
 });
 
-test('printed SVG keeps original QR paths and safe quiet zone, with a discreet fixed serial',async()=>{
+test('printed SVG keeps original QR paths and compact margins, with a discreet fixed serial',async()=>{
  const url='https://example.test/r/PL-000143',svg=await plateQrSvg(url,4827);
- const original=await require('qrcode').toString(url,{type:'svg',errorCorrectionLevel:'M',margin:4,color:{dark:'#000000',light:'#ffffff'}});
+ const original=await require('qrcode').toString(url,{type:'svg',errorCorrectionLevel:'M',margin:2,color:{dark:'#000000',light:'#ffffff'}});
  const size=Number(original.match(/viewBox="0 0 (\d+) \d+"/)[1]);
  assert.ok(svg.includes(`viewBox="0 0 ${size+2} ${size+2}"`));
  const paths=text=>[...text.matchAll(/<path[^>]*>/g)].map(m=>m[0]);assert.deepEqual(paths(svg).slice(1,3),paths(original));

@@ -6,11 +6,12 @@ async function plateQrSvg(permanentUrl, serialNumber) {
     throw Object.assign(new Error('Identificador da placa indisponível. Confira a migration de números de série.'), { status: 503 });
   }
   const svg = await QRCode.toString(permanentUrl, {
-    type: 'svg', errorCorrectionLevel: 'M', margin: 4,
+    type: 'svg', errorCorrectionLevel: 'M', margin: 2,
     color: { dark: '#000000', light: '#ffffff' }
   });
   const size = Number(svg.match(/viewBox="0 0 (\d+) \d+"/)[1]);
-  // Keep the four-module quiet zone intact. A compact two-module footer
+  // Compact two-module artwork margin. Leave white space around the QR when printing.
+  // A separate two-module footer
   // holds the serial; equal canvas dimensions keep preview and print square.
   const side = size + 2;
   const serial = `<text x="${side - 1}" y="${size + 1.6}" text-anchor="end" font-family="Arial,Helvetica,sans-serif" font-size="1.5" font-weight="400" fill="#64748b" shape-rendering="auto">${serialNumber}</text>`;
