@@ -1,6 +1,6 @@
 const path = require('node:path');
 const { Router } = require('express');
-const QRCode = require('qrcode');
+const { plateQrSvg } = require('./plate-qr');
 
 const statuses = ['pending', 'active', 'inactive'];
 const purposes = ['google_review', 'pix', 'wifi', 'link_bio', 'other'];
@@ -61,8 +61,9 @@ async function supabase(endpoint, { token, method = 'GET', body, prefer } = {}) 
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const status = ['23505','PT409','40001','40P01'].includes(data?.code) ? 409 : ['23503', '23514', '22P02', '22007', '22008', '23502'].includes(data?.code) ? 400 : response.status;
-    const message = status === 409 ? (data?.code==='23505'?'Este identificador já está cadastrado.':'O registro mudou. Reabra antes de salvar.') : status === 400 ? 'Confira os dados e os vínculos informados.' : status === 401 ? 'E-mail ou senha inválidos, ou sessão expirada.' : status === 403 ? 'Acesso não autorizado.' : 'Não foi possível concluir a operação no banco.';
+    const exhausted=data?.code==='P0001'&&data?.message==='Plate serial capacity exhausted';
+    const status = exhausted?409:['23505','PT409','40001','40P01'].includes(data?.code) ? 409 : ['23503', '23514', '22P02', '22007', '22008', '23502'].includes(data?.code) ? 400 : response.status;
+    const message = exhausted?'Os 9.000 números de série já foram utilizados. Não é possível gerar novas placas de quatro dígitos.':status === 409 ? (data?.code==='23505'?'Este identificador já está cadastrado.':'O registro mudou. Reabra antes de salvar.') : status === 400 ? 'Confira os dados e os vínculos informados.' : status === 401 ? 'E-mail ou senha inválidos, ou sessão expirada.' : status === 403 ? 'Acesso não autorizado.' : 'Não foi possível concluir a operação no banco.';
     throw Object.assign(new Error(message), { status: status >= 500 ? 503 : status });
   }
   return data;
@@ -217,13 +218,14 @@ function registerPlates(app) {
       res.json({ ok: true });
     } catch (error) { session(res, null, secureRequest(req)); next(error); }
   });
-  const selection = 'code,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,revision,client:clients(id,name,company,phone),product:products(id,name)';
+  const selection = 'code,serialNumber,clientId,productId,status,purpose,installationLocation,destinationUrl,nfcIdentifier,deliveredAt,createdAt,updatedAt,revision,client:clients(id,name,company,phone),product:products(id,name)';
   api.get('/plates', async (req, res, next) => {
     const page = Math.max(0, Math.min(100000, Number.parseInt(req.query.page, 10) || 0));
     const query = new URLSearchParams({ select: selection, order: 'createdAt.desc,code.desc', limit: '51', offset: String(page * 50) });
     if (req.query.search) {
       const search = String(req.query.search).trim().replace(/[^a-zA-Z0-9-]/g, '').slice(0, 20);
-      if (search) query.set('code', `ilike.*${search}*`);
+      if (/^[1-9]\d{3}$/.test(search)) query.set('or', `(code.ilike.*${search}*,serialNumber.eq.${search})`);
+      else if (search) query.set('code', `ilike.*${search}*`);
     }
     for (const field of ['clientId', 'productId', 'status']) {
       if (!req.query[field]) continue;
@@ -253,13 +255,10 @@ function registerPlates(app) {
   api.get('/plates/:code/qr.svg', async (req, res, next) => {
     if (!/^PL-\d{6}$/.test(req.params.code)) return res.status(404).json({ error: 'Placa não encontrada.' });
     try {
-      const query = new URLSearchParams({ select: 'code', code: `eq.${req.params.code}`, limit: '1' });
+      const query = new URLSearchParams({ select: 'code,serialNumber', code: `eq.${req.params.code}`, limit: '1' });
       const rows = await supabase(`/rest/v1/plates?${query}`, { token: req.supabaseToken });
       if (!rows.length) return res.status(404).json({ error: 'Placa não encontrada.' });
-      const svg = await QRCode.toString(permanentPlateUrl(req, rows[0].code), {
-        type: 'svg', errorCorrectionLevel: 'M', margin: 4,
-        color: { dark: '#000000', light: '#ffffff' }
-      });
+      const svg = await plateQrSvg(permanentPlateUrl(req, rows[0].code), rows[0].serialNumber);
       res.type('image/svg+xml');
       if (req.query.download === '1') res.attachment(`${rows[0].code}.svg`);
       res.send(svg);

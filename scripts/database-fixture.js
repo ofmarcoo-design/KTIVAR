@@ -1,7 +1,7 @@
 const { PGlite } = require('@electric-sql/pglite');
 const { readdirSync, readFileSync } = require('node:fs');
 const path = require('node:path');
-async function database() {
+async function database({beforeMigration}={}) {
   const db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create table auth.users(id uuid primary key,email text);
@@ -9,6 +9,7 @@ async function database() {
     grant usage on schema auth to anon,authenticated;
     grant execute on function auth.uid() to anon,authenticated;`);
   for(const file of readdirSync(path.join(__dirname,'../supabase/migrations')).filter(x=>x.endsWith('.sql')).sort()) {
+    if(beforeMigration&&file>=beforeMigration)continue;
     try { await db.exec(readFileSync(path.join(__dirname,'../supabase/migrations',file),'utf8')); }
     catch(error) {throw new Error(`${file}: ${error.message}`,{cause:error});}
   }

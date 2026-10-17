@@ -410,3 +410,22 @@ instalação, escopo raiz, requisições novas, POST, redirect alterado e ausên
 cache privado, com fixtures HTTP controladas e sem tocar dados de produção.
 Usa as mesmas instalações externas de Playwright/Chromium da verificação
 responsiva; nenhuma nova dependência de runtime ou hosting foi necessária.
+
+## Número de série impresso no QR
+
+Cada placa possui `serialNumber`, sorteado no banco entre 1000 e 9999,
+único e imutável. A migration `20261017184816_plate_print_serial.sql` atribui
+séries às placas existentes sem alterar código, destino, revisão ou histórico.
+Novos cadastros, lotes e placas geradas por venda usam o mesmo alocador.
+O espaço comporta 9.000 placas; ao esgotar, novas gerações são recusadas.
+
+O SVG mantém os quatro módulos de margem livre do QR e acrescenta apenas
+um rodapé branco de três módulos. Os quatro dígitos aparecem pequenos,
+em cinza, à direita dessa margem externa; nunca sobre os módulos do QR.
+A visualização e o download usam o mesmo arquivo. Somente a URL permanente
+`/r/PL-XXXXXX` é codificada: série e `destinationUrl` não entram no payload.
+
+A série pode ser consultada na listagem/detalhes e na busca de placas.
+O CSV de estoque e o backup JSON preservam o número. A restauração de
+exports antigos, anteriores a esse campo, gera séries novas para essas placas.
+Autenticação, analytics, hosting e redirecionamento permanecem inalterados.

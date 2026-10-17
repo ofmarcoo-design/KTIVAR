@@ -16,7 +16,10 @@ async function restoreFixture(db,backup){
   await db.exec(`truncate ${tables.map(t=>'public.'+t).join(',')}`);
   for(const table of tables){
    const columns=(await db.query('select column_name from information_schema.columns where table_schema=$1 and table_name=$2 and is_generated=$3',['public',table,'NEVER'])).rows.map(r=>r.column_name);
-   for(const row of backup.tables[table]){
+   for(const source of backup.tables[table]){
+    const row={...source};
+    // Older exports have no printed serial; new exports preserve the original one.
+    if(table==='plates'&&row.serialNumber==null)row.serialNumber=(await db.query('select private.next_plate_serial() as serial')).rows[0].serial;
     const names=columns.filter(c=>Object.hasOwn(row,c));const values=names.map(c=>row[c]!==null&&typeof row[c]==='object'?JSON.stringify(row[c]):row[c]);
     // PGlite encodes JS arrays as json; text[] must be supplied as a PostgreSQL array literal.
     if(table==='audit_log'){const index=names.indexOf('changedFields');if(index>=0)values[index]='{'+row.changedFields.map(v=>'"'+v.replaceAll('\\','\\\\').replaceAll('"','\\"')+'"').join(',')+'}';}

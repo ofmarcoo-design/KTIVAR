@@ -43,7 +43,7 @@ async function load() {
     $('#rows').replaceChildren();
     for (const plate of data.items) {
       const row = document.createElement('tr');
-      const code=action(plate.code,()=>view(plate.code));code.className='text-link plate-code';code.setAttribute('aria-label','Ver placa '+plate.code);cell(row,'','Código').replaceChildren(code);
+      const code=action(plate.code,()=>view(plate.code));code.className='text-link plate-code';code.setAttribute('aria-label','Ver placa '+plate.code);cell(row,'','Código').replaceChildren(code);if(plate.serialNumber){const serial=document.createElement('small');serial.textContent='Série '+plate.serialNumber;row.firstElementChild.append(serial);}
       const client = cell(row,'','Cliente');const clientName=document.createElement('span');clientName.className='plate-client-name';clientName.textContent=plate.client?.company||plate.client?.name||'Sem cliente';clientName.title=clientName.textContent;client.replaceChildren(clientName);
       if (plate.client?.company) { const small = document.createElement('small'); small.textContent = plate.client.name;small.title=plate.client.name;client.append(small); }
       if(plate.product?.name){const product=document.createElement('small');product.textContent=plate.product.name;product.title=plate.product.name;client.append(product);}
@@ -118,14 +118,14 @@ async function view(code) {
     $('#qr-image').src = qrPath;
     $('#qr-download').href = `${qrPath}?download=1`;
     $('#qr-download').download = `${plate.code}.svg`;
-    const fields = [ ['Cliente', plate.client?.name], ['Empresa', plate.client?.company], ['Telefone', plate.client?.phone], ['Produto', plate.product?.name], ['Status', statusLabels[plate.status]], ['Finalidade', purposeLabels[plate.purpose]], ['Instalação', plate.installationLocation], ['URL permanente', plate.permanentUrl], ['Destino atual', plate.destinationUrl], ['Identificador QR', plate.code], ['Identificador NFC', plate.nfcIdentifier], ['Entrega', delivery(plate.deliveredAt)], ['Criada em', date(plate.createdAt)], ['Atualizada em', date(plate.updatedAt)] ];
+    const fields = [ ['Número de série', plate.serialNumber], ['Cliente', plate.client?.name], ['Empresa', plate.client?.company], ['Telefone', plate.client?.phone], ['Produto', plate.product?.name], ['Status', statusLabels[plate.status]], ['Finalidade', purposeLabels[plate.purpose]], ['Instalação', plate.installationLocation], ['URL permanente', plate.permanentUrl], ['Destino atual', plate.destinationUrl], ['Identificador QR', plate.code], ['Identificador NFC', plate.nfcIdentifier], ['Entrega', delivery(plate.deliveredAt)], ['Criada em', date(plate.createdAt)], ['Atualizada em', date(plate.updatedAt)] ];
     for (const [label, value] of fields) {
       const dt = document.createElement('dt'); dt.textContent = label;
       const dd = document.createElement('dd'); dd.textContent = value || '—';
       if (['URL permanente', 'Destino atual'].includes(label)) {
         try { const url = new URL(value); if (['http:', 'https:'].includes(url.protocol)) { const link = document.createElement('a'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = value; dd.replaceChildren(link); } } catch { /* Show invalid legacy destinations as text. */ }
       }
-      (['Cliente','Status','URL permanente','Destino atual'].includes(label)?$('#details'):$('#extra-details')).append(dt, dd);
+      (['Número de série','Cliente','Status','URL permanente','Destino atual'].includes(label)?$('#details'):$('#extra-details')).append(dt, dd);
     }
     KTIVAR.context($('#viewer'),'Placas',plate.code);$('#viewer').showModal();
     loadAnalytics(code);

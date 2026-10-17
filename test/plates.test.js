@@ -18,8 +18,8 @@ test('plate input rejects invalid dates and missing links, preserves optional fi
 });
 
 test('login requires allowlisted user, renews session, and protects APIs and screen', async t => {
-  let allowed = true, portalAllowed=false;
-  const plate = { code: 'PL-000143', destinationUrl: 'https://destination.invalid/first' };
+  let allowed = true, portalAllowed=false,lastPlateQuery;
+  const plate = { code: 'PL-000143', serialNumber: 4827, destinationUrl: 'https://destination.invalid/first' };
   const user = { id: '00000000-0000-4000-8000-000000000001', email: 'test@example.com' };
   const database = http.createServer(async (req,res) => {
     const url = new URL(req.url,'http://localhost');
@@ -39,7 +39,7 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
     if(url.pathname === '/rest/v1/rpc/client_portal_snapshot') return res.end(JSON.stringify({name:'Own client',plates:[]}));
     if(url.pathname === '/rest/v1/plate_access') return res.end(JSON.stringify(allowed?[{userId:user.id}]:[]));
     if(url.pathname === '/rest/v1/plates') {
-      const code = url.searchParams.get('code');
+      lastPlateQuery=url.searchParams;const code = url.searchParams.get('code');
       return res.end(JSON.stringify(!code || code === `eq.${plate.code}` ? [plate] : []));
     }
     if(url.pathname === '/auth/v1/logout') {res.statusCode=204;return res.end();}
@@ -83,6 +83,9 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   const staleDeal=await request(`/api/workspace/deals/${user.id}`,{method:'PATCH',cookie,body:{clientId:user.id,name:'Deal',stageId:user.id,result:'open',revision:0,tags:[]}});
   assert.equal(staleDeal.status,409);
   assert.match((await staleDeal.json()).error,/Reabra/);
+  assert.equal((await request('/api/plates?search=4827',{cookie})).status,200);
+  assert.equal(lastPlateQuery.get('or'),'(code.ilike.*4827*,serialNumber.eq.4827)');
+  const stockExport=await(await request('/api/stock.csv',{cookie})).text();assert.ok(stockExport.includes('Número de série'));assert.ok(stockExport.includes('"4827"'));
   const host = 'plates.example.test';
   const permanent = `https://${host}/r/PL-000143`;
   const detail = await (await request('/api/plates/PL-000143', {cookie,host})).json();
@@ -93,7 +96,11 @@ test('login requires allowlisted user, renews session, and protects APIs and scr
   assert.equal(qrResponse.headers.get('cache-control'), 'no-store');
   const svg = await qrResponse.text();
   const expected = await require('qrcode').toString(permanent, {type:'svg',errorCorrectionLevel:'M',margin:4,color:{dark:'#000000',light:'#ffffff'}});
-  assert.equal(svg, expected);
+  const size=Number(expected.match(/viewBox="0 0 (\d+) \d+"/)[1]);
+  assert.ok(svg.includes(`viewBox="0 0 ${size} ${size+3}"`));
+  assert.deepEqual([...svg.matchAll(/<path[^>]*>/g)].slice(0,2).map(m=>m[0]),[...expected.matchAll(/<path[^>]*>/g)].map(m=>m[0]),'QR matrix and four-module quiet zone stay intact');
+  assert.match(svg,/>4827<\/text>/);
+  assert.ok(!svg.includes(plate.destinationUrl));
   assert.notEqual(svg, await require('qrcode').toString(plate.destinationUrl, {type:'svg',errorCorrectionLevel:'M',margin:4}));
   plate.destinationUrl = 'https://destination.invalid/changed';
   assert.equal(await (await request('/api/plates/PL-000143/qr.svg', {cookie,host})).text(), svg);
