@@ -34,6 +34,33 @@
   const modules={clients:['Gestão','Clientes'],products:['Comercial','Produtos'],sales:['Comercial','Vendas'],deals:['Comercial','CRM'],activities:['Comercial','Atividades'],config:['Sistema','Configurações']};
   const current=location.pathname==='/manage'?modules[new URLSearchParams(location.search).get('module')||'clients']:({'/plates':['Gestão','Placas'],'/dashboard':['Operação','Dashboard'],'/analytics':['Visão operacional','Analytics'],'/reports':['Comercial','Relatórios']}[location.pathname]);
   if(current){const breadcrumb=document.createElement('nav');breadcrumb.className='app-breadcrumb';breadcrumb.setAttribute('aria-label','Localização');const group=document.createElement('span');group.textContent=current[0];const separator=document.createElement('span');separator.textContent='/';separator.setAttribute('aria-hidden','true');const page=document.createElement('strong');page.textContent=current[1];breadcrumb.append(group,separator,page);header.querySelector(':scope > .brand')?.replaceWith(breadcrumb);}
+  // Global command navigation: actual existing destinations only, no fictional record search.
+  const navEntries=[...nav.querySelectorAll('a:not(.brand)')].map(a=>({name:a.getAttribute('aria-label')||a.textContent.trim(),href:a.getAttribute('href')}));
+  const command=document.createElement('div');command.className='global-command';
+  const searchLabel=document.createElement('label');searchLabel.className='sr-only';searchLabel.htmlFor='global-command-input';searchLabel.textContent='Buscar módulo do KTIVAR';
+  const searchInput=document.createElement('input');searchInput.id='global-command-input';searchInput.type='search';searchInput.placeholder='Buscar módulo no KTIVAR…';searchInput.autocomplete='off';searchInput.setAttribute('aria-controls','global-command-results');searchInput.setAttribute('aria-expanded','false');searchInput.setAttribute('aria-label','Buscar módulos e navegar');
+  const hotkey=document.createElement('kbd');hotkey.textContent='⌘ K';hotkey.setAttribute('aria-hidden','true');
+  const results=document.createElement('div');results.id='global-command-results';results.className='command-results';results.hidden=true;
+  const updateResults=()=>{
+   const value=searchInput.value.trim().toLocaleLowerCase('pt-BR');
+   results.replaceChildren();if(!value){results.hidden=true;searchInput.setAttribute('aria-expanded','false');return;}
+   const matches=navEntries.filter(item=>item.name.toLocaleLowerCase('pt-BR').includes(value)).slice(0,8);
+   if(!matches.length){const empty=document.createElement('p');empty.textContent='Nenhum módulo encontrado.';results.append(empty);}
+   for(const item of matches){const a=document.createElement('a');a.href=item.href;a.textContent=item.name;results.append(a);}
+   results.hidden=false;searchInput.setAttribute('aria-expanded','true');
+  };
+  searchInput.addEventListener('input',updateResults);
+  searchInput.addEventListener('keydown',e=>{
+   if(e.key==='Enter'){const first=results.querySelector('a');if(first){e.preventDefault();location.assign(first.href);}}
+   if(e.key==='Escape'){searchInput.value='';updateResults();searchInput.blur();}
+  });
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();searchInput.focus();searchInput.select();}});
+  document.addEventListener('pointerdown',e=>{if(!command.contains(e.target)){results.hidden=true;searchInput.setAttribute('aria-expanded','false');}});
+  command.append(searchLabel,searchInput,hotkey,results);
+  const appearance=document.createElement('button');appearance.type='button';appearance.className='header-theme-toggle';appearance.setAttribute('aria-label','Alternar tema claro e escuro');appearance.title='Alternar aparência';
+  appearance.textContent='◐';
+  appearance.addEventListener('click',()=>window.KTIVARTheme?.set(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+  if(account){header.insertBefore(command,account);header.insertBefore(appearance,account);}
   const account=header.querySelector('.account');if(account){
    const email=account.querySelector('#email'),logout=account.querySelector('#logout');
    const menu=document.createElement('details');menu.className='user-menu';
