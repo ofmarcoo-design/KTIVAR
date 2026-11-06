@@ -85,15 +85,25 @@
  }
  function period(){const date=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());return new URLSearchParams({from:date.slice(0,7)+'-01',to:date});}
  function optional(selector,route,render,id){const panel=$(selector);panel.replaceChildren(el('p','Consultando dados…','scan-note'));panel.setAttribute('aria-busy','true');return api(route).then(data=>{if(id===sequence)render(data);},()=>{if(id===sequence)panel.replaceChildren(el('p','Não foi possível consultar este resumo. Use o módulo correspondente ou tente atualizar.','scan-note'));}).finally(()=>{if(id===sequence)panel.removeAttribute('aria-busy');});}
+ function showInitialSkeletons(){
+  const make=(kind)=>{const node=el('div',undefined,'ui-skeleton '+kind);node.setAttribute('aria-hidden','true');return node;};
+  if(!$('#overview-metrics').children.length){
+   $('#overview-metrics').replaceChildren(...Array.from({length:4},()=>make('ui-skeleton-kpi')));
+   $('#scan-metrics').replaceChildren(...Array.from({length:4},()=>make('ui-skeleton-scan')));
+   $('#top-plates').replaceChildren(...Array.from({length:3},()=>make('ui-skeleton-row')));
+   return true;
+  }
+  return false;
+ }
  async function load(){
-  const id=++sequence;const done=KTIVAR.busy($('#reload'),'Atualizando…');$('#message').dataset.tone='info';$('#message').textContent='Consultando sua operação…';$('#overview-metrics').setAttribute('aria-busy','true');
+  const id=++sequence;const initial=showInitialSkeletons();const done=KTIVAR.busy($('#reload'),'Atualizando…');$('#message').dataset.tone='info';$('#message').textContent='Consultando sua operação…';$('#overview-metrics').setAttribute('aria-busy','true');
   try{
    const activities=analytics?null:api('/workspace/activities?mode=overdue&page=0').then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason}));
    if(!analytics){optional('#commercial','/workspace/reports?'+period(),commercial,id);optional('#opportunities','/workspace/deals?result=open&page=0',opportunities,id);}
    const overview=await api('/overview');if(id!==sequence)return;
    metrics(overview);recent(overview);$('#message').textContent='';
    if(!analytics){attention(overview,{status:'pending'});$('#attention').setAttribute('aria-busy','true');activities.then(result=>{if(id===sequence){attention(overview,result);$('#attention').removeAttribute('aria-busy');}});}
-  }catch(error){if(id===sequence){$('#message').dataset.tone='danger';$('#message').textContent=error.message;}}
+  }catch(error){if(id===sequence){$('#message').dataset.tone='danger';$('#message').textContent=error.message;if(initial){for(const target of ['#overview-metrics','#scan-metrics','#top-plates'])$(target).replaceChildren(el('p','Não foi possível carregar estes indicadores. Tente atualizar.','empty-state'));}}}
   finally{done();$('#overview-metrics').removeAttribute('aria-busy');}
  }
  $('#reload').addEventListener('click',load);
