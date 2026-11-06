@@ -1,4 +1,6 @@
 (()=>{
+ const uiModule=location.pathname==='/manage'?(new URLSearchParams(location.search).get('module')||'clients'):(location.pathname.replace(/^\//,'')||'home');
+ document.body.dataset.uiModule=uiModule;
  const nav=document.querySelector('.module-nav');
  if(nav){
   const paths=['M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.87','M3 3h6v6H3z M15 3h6v6h-6z M3 15h6v6H3z M15 15h3 M21 15v6h-6 M15 18v3','M4 19V9 M12 19V3 M20 19v-6','M3 7h18v14H3z M8 7V3h8v4','M4 6h16 M4 12h16 M4 18h16','M4 3h16v18H4z M8 8h8 M8 12h8 M8 16h4','M9 3h6v3h3v3h3v6h-3v3h-3v3H9v-3H6v-3H3V9h3V6h3z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6','M4 4h5v16H4z M10 4h5v10h-5z M16 4h5v6h-5z','M5 4h14v16H5z M8 8h8 M8 12h8 M8 16h5'];
