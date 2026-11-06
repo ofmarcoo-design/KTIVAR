@@ -12,7 +12,7 @@
   document.documentElement.dataset.themePreference=preference;
   document.documentElement.style.colorScheme=resolved;
   const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta)meta.content=resolved==='dark'?'#111827':'#0F172A';
+  if(meta)meta.content=resolved==='dark'?'#0b0b0c':'#F9FBFF';
   document.querySelectorAll('[data-theme-choice]').forEach(button=>{
    const active=button.dataset.themeChoice===preference;
    button.setAttribute('aria-pressed',String(active));
