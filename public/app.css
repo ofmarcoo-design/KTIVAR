@@ -1409,3 +1409,25 @@ body:not(.analytics-page) .summary-grid:has(#attention) .section-heading{
 body:not(.analytics-page) #commercial-section .section-heading>a{
  flex:0 0 auto;align-self:flex-start;padding:3px 0;
 }
+
+/* Browser-reviewed: report breakdowns should use the full available width. */
+.app-shell[data-ui-module="reports"] #breakdowns .report-group{
+ margin:14px 0;padding:18px 20px;
+ border:1px solid var(--border);border-radius:var(--ds-radius-md,11px);
+ background:var(--surface);
+}
+.app-shell[data-ui-module="reports"] #breakdowns .report-group>h2{
+ font-size:15px;line-height:1.45;font-weight:600;
+ margin:0 0 13px;
+}
+.app-shell[data-ui-module="reports"] #breakdowns .report-group>.record-list{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));
+ gap:11px;
+}
+.app-shell[data-ui-module="reports"] #breakdowns .report-group .record-card{
+ margin:0;min-width:0;padding:14px;
+}
+@media(max-width:650px){
+ .app-shell[data-ui-module="reports"] #breakdowns .report-group{padding:15px 13px}
+}
