@@ -1229,3 +1229,27 @@ html[data-theme="dark"] .app-shell .analytics-panel>div{background:var(--raised)
 @media(prefers-reduced-motion:reduce){
  .app-shell :is(.table-wrap tbody tr,tbody tr){transition:none}
 }
+
+/* Shape-matched loading state avoids layout jumps on first visit. */
+body:not(.analytics-page) #overview-metrics .ui-skeleton-kpi,
+body:not(.analytics-page) #scan-metrics .ui-skeleton-scan,
+body:not(.analytics-page) #top-plates .ui-skeleton-row{
+ position:relative;overflow:hidden;
+ background:var(--raised);border:1px solid var(--border);
+ border-radius:var(--ds-radius-md,11px);
+}
+body:not(.analytics-page) #overview-metrics .ui-skeleton-kpi{min-height:142px}
+body:not(.analytics-page) #scan-metrics .ui-skeleton-scan{min-height:108px}
+body:not(.analytics-page) #top-plates .ui-skeleton-row{min-height:65px;margin:10px 0}
+body:not(.analytics-page) .ui-skeleton::before,
+body:not(.analytics-page) .ui-skeleton::after{
+ content:"";position:absolute;left:15px;height:11px;border-radius:5px;
+ background:var(--border);
+}
+body:not(.analytics-page) .ui-skeleton::before{top:22px;width:53%}
+body:not(.analytics-page) .ui-skeleton::after{top:49px;width:31%;height:22px}
+body:not(.analytics-page) .ui-skeleton-row::after{height:9px;top:40px}
+@media(max-width:650px){
+ body:not(.analytics-page) #overview-metrics .ui-skeleton-kpi{min-height:137px}
+ body:not(.analytics-page) #scan-metrics .ui-skeleton-scan{min-height:91px}
+}
