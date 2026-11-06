@@ -20,7 +20,7 @@
    ['Placas ativas',data.active,'/plates?active=true',`${number(data.plates)} placas cadastradas no total`],
    ['Placas em estoque',data.stock,'/plates?status=stock','Disponíveis para vincular cliente e destino'],
    ['Acessos em 30 dias',data.scans.days30,'/analytics','Acessos registrados, incluindo repetições']
-  ]){const card=el('article',undefined,'record-card metric-card');const head=el('div',undefined,'dashboard-kpi-top');head.append(el('h2',label),el('span','↗','dashboard-kpi-arrow'));card.append(head,el('p',number(value),'metric-value'),el('small',note));const anchor=link('',href);anchor.append(card);$('#overview-metrics').append(anchor);}
+  ]){const card=el('article',undefined,'record-card metric-card');const head=el('div',undefined,'dashboard-kpi-top');head.append(el('h2',label));card.append(head,el('p',number(value),'metric-value'),el('small',note));const anchor=link('',href);anchor.append(card);$('#overview-metrics').append(anchor);}
   $('#scan-metrics').replaceChildren();
   for(const [key,label] of [['today','Hoje'],['days7','Últimos 7 dias'],['days30','Últimos 30 dias'],['total','Total']]){
    const metric=el('div',undefined,key==='days30'?'featured-metric':'');metric.append(el('strong',number(data.scans[key])),el('span',label));$('#scan-metrics').append(metric);
