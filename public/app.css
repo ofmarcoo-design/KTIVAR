@@ -1785,3 +1785,16 @@ body:not(.analytics-page) .summary-grid:has(#attention)>.summary-panel{
  body:not(.analytics-page) #commercial-section{grid-template-columns:1fr}
  body:not(.analytics-page) .access-scale{gap:13px}
 }
+
+/* Responsive sidebar close control follows the selected theme's readable colors. */
+.app-shell .module-nav .nav-close{
+ background:var(--surface);color:var(--secondary);
+ border:1px solid var(--border);border-radius:8px;
+ padding:10px 12px;
+}
+.app-shell .module-nav .nav-close:hover{
+ background:var(--ui-surface-hover);color:var(--text);
+}
+html[data-theme="dark"] .app-shell .module-nav .nav-close{
+ background:var(--raised);color:#f1f5f9;border-color:var(--border);
+}
