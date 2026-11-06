@@ -32,7 +32,7 @@ test('light is the initial neutral theme and dark persists across navigation',()
  assert.equal(a.theme.get(),'light');
  a.theme.set('dark');
  assert.equal(a.root.dataset.theme,'dark');
- assert.equal(a.meta.content,'#111827');
+ assert.equal(a.meta.content,'#0b0b0c');
  assert.equal(a.buttons[1].attributes['aria-pressed'],'true');
  const b=setup(a.storage.value);
  assert.equal(b.root.dataset.theme,'dark');
