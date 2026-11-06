@@ -34,3 +34,12 @@ test('all layout modules share the same UI foundation, current theme and route c
   assert.ok(html.includes('/assets/app.css'),name);
  }
 });
+
+test('initial skeletons are shape matched and failed loads expose a retry message',()=>{
+ assert.ok(dashboard.includes('showInitialSkeletons'));
+ assert.ok(dashboard.includes('ui-skeleton-kpi'));
+ assert.ok(dashboard.includes('ui-skeleton-scan'));
+ assert.ok(dashboard.includes('ui-skeleton-row'));
+ assert.ok(dashboard.includes('Não foi possível carregar estes indicadores'));
+ assert.ok(css.includes('Shape-matched loading state'));
+});
