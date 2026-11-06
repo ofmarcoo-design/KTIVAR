@@ -1806,3 +1806,69 @@ html[data-theme="dark"] .app-shell .module-nav .nav-close{
  .app-shell.nav-collapsed .module-nav>a:not(.brand){justify-content:center;padding:12px}
  .app-shell.nav-collapsed .module-nav .sidebar-brand{padding:6px;min-height:48px}
 }
+
+/* Approved reference: three coherent commercial/CRM/activity panels on desktop. */
+@media(min-width:1201px){
+ body:not(.analytics-page) #commercial-section{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+}
+body:not(.analytics-page) #commercial-section>.summary-panel{
+ min-width:0;
+}
+body:not(.analytics-page) #commercial-section .section-heading{
+ min-height:60px;
+}
+body:not(.analytics-page) #commercial-section .section-heading>a{
+ font-size:11px;
+}
+body:not(.analytics-page) #commercial-section .summary-stats{
+ display:flex;flex-direction:column;gap:0;padding:1px 0 8px;
+}
+body:not(.analytics-page) #commercial-section .summary-stats>.metric-card,
+html[data-theme="dark"] body:not(.analytics-page) #commercial-section .summary-stats>.metric-card{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-direction:row;gap:10px;
+ border:0;border-bottom:1px solid var(--border);
+ border-radius:0;padding:10px 2px;background:transparent;
+ color:var(--text);text-decoration:none;
+}
+body:not(.analytics-page) #commercial-section .summary-stats>.metric-card small{
+ font-size:12px;min-width:0;color:var(--secondary);
+}
+body:not(.analytics-page) #commercial-section .summary-stats>.metric-card .metric-value{
+ font-size:clamp(14px,1.25vw,17px);
+ margin:0;white-space:nowrap;color:var(--text);
+}
+body:not(.analytics-page) #commercial-section .summary-panel .activity-row{
+ padding:11px 2px;
+}
+body:not(.analytics-page) #commercial-section .summary-panel .activity-row p{
+ display:-webkit-box;
+ -webkit-line-clamp:2;-webkit-box-orient:vertical;
+ overflow:hidden;overflow-wrap:anywhere;
+}
+body:not(.analytics-page) .dashboard-recent .activity-row{
+ padding:13px 1px;
+}
+body:not(.analytics-page) .dashboard-followup{
+ grid-template-columns:1fr;margin:0 0 16px;
+}
+body:not(.analytics-page) .dashboard-followup>#attention{
+ padding:17px 20px;
+}
+@media(min-width:1201px){
+ body:not(.analytics-page) .dashboard-followup>#attention{
+  max-width:100%;
+ }
+}
+@media(max-width:1200px){
+ body:not(.analytics-page) #commercial-section{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+}
+@media(max-width:760px){
+ body:not(.analytics-page) #commercial-section{
+  grid-template-columns:1fr;
+ }
+}
