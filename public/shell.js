@@ -46,12 +46,23 @@
    const panel=document.createElement('div');panel.className='user-panel';
    const panelName=document.createElement('strong');panelName.className='user-panel-name';
    panel.append(panelName,email);
-   const settings=document.createElement('a');settings.href='/manage?module=config';settings.textContent='Configurações';panel.append(settings,logout);
+   const settings=document.createElement('a');settings.href='/manage?module=config';settings.textContent='Configurações';
+   // The same actual theme preference is available in the desktop account menu and mobile settings.
+   const themeControl=()=>{
+    const wrap=document.createElement('div');wrap.className='theme-control';
+    const heading=document.createElement('span');heading.className='theme-control-label';heading.textContent='Aparência';wrap.append(heading);
+    const group=document.createElement('div');group.className='theme-options';group.setAttribute('role','group');group.setAttribute('aria-label','Tema da interface');
+    for(const [value,label] of [['light','Claro'],['dark','Escuro'],['auto','Automático']]){
+     const button=document.createElement('button');button.type='button';button.dataset.themeChoice=value;button.textContent=label;button.setAttribute('aria-pressed','false');group.append(button);
+    }
+    wrap.append(group);return wrap;
+   };
+   panel.append(settings,themeControl(),logout);window.KTIVARTheme?.apply();
    menu.append(summary,panel);account.replaceChildren(menu);
    const isSettings=location.pathname==='/manage'&&new URLSearchParams(location.search).get('module')==='config';
    const card=isSettings?document.createElement('section'):null;
    let cardName,cardAvatar,cardIdentity;
-   if(card){card.className='account settings-account';card.setAttribute('aria-label','Sua conta');cardAvatar=avatar.cloneNode(true);cardIdentity=document.createElement('div');cardIdentity.className='user-identity';cardName=name.cloneNode(true);cardIdentity.append(cardName);card.append(cardAvatar,cardIdentity);workspace.querySelector('.title-row').after(card);}
+   if(card){card.className='account settings-account';card.setAttribute('aria-label','Sua conta');cardAvatar=avatar.cloneNode(true);cardIdentity=document.createElement('div');cardIdentity.className='user-identity';cardName=name.cloneNode(true);cardIdentity.append(cardName);card.append(cardAvatar,cardIdentity);workspace.querySelector('.title-row').after(card);const mobileTheme=themeControl();mobileTheme.classList.add('settings-theme');card.after(mobileTheme);window.KTIVARTheme?.apply();}
    // A single email/logout pair retains the existing session and event handlers at either size.
    const syncAccount=()=>{header.hidden=mobile.matches;if(card){card.hidden=!mobile.matches;if(mobile.matches){cardIdentity.append(email);card.append(logout);}else{panel.insertBefore(email,settings);panel.append(logout);}}menu.open=false;};
    syncAccount();mobile.addEventListener('change',syncAccount);
