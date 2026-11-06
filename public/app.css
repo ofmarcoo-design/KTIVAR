@@ -1390,3 +1390,22 @@ html[data-theme="dark"] .app-shell :is(.report-overview,.report-operation,.plate
  }
  .app-shell .plate-list-panel>.module-data-heading{padding:13px}
 }
+
+/* Real browser review: keep heading copy together at every width. */
+body:not(.analytics-page) .panel-heading-copy{
+ flex:1 1 auto;min-width:0;
+}
+body:not(.analytics-page) .panel-heading-copy h2{
+ overflow-wrap:normal;word-break:normal;
+ font-size:16px;line-height:1.35;
+}
+body:not(.analytics-page) .panel-heading-copy .panel-subtitle{
+ margin-top:5px;line-height:1.5;
+}
+body:not(.analytics-page) #commercial-section .section-heading,
+body:not(.analytics-page) .summary-grid:has(#attention) .section-heading{
+ display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px 14px;
+}
+body:not(.analytics-page) #commercial-section .section-heading>a{
+ flex:0 0 auto;align-self:flex-start;padding:3px 0;
+}
