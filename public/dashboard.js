@@ -5,7 +5,7 @@
  const number=value=>new Intl.NumberFormat('pt-BR').format(value);
  const link=(label,href,className)=>{const node=el('a',label,className);node.href=href;return node;};
  $('#overview-title').textContent=analytics?'Analytics':'Dashboard';
- $('#overview-description').textContent=analytics?'Acessos registrados às URLs permanentes das placas.':'Indicadores, pendências e próximos passos da operação.';
+ $('#overview-description').textContent=analytics?'Acessos registrados às URLs permanentes das placas.':'Acompanhe os indicadores, o desempenho e as atividades da sua operação.';
  document.title=(analytics?'Analytics':'Dashboard')+' · KTIVAR';document.body.classList.toggle('analytics-page',analytics);
  for(const selector of ['#operations-section','#commercial-section','#attention','#shortcuts-section'])$(selector).hidden=analytics;
  async function api(route,options={}){
@@ -18,8 +18,9 @@
   for(const [label,value,href,note] of [
    ['Clientes cadastrados',data.clients,'/manage?module=clients','Cadastros disponíveis para consulta'],
    ['Placas ativas',data.active,'/plates?active=true',`${number(data.plates)} placas cadastradas no total`],
-   ['Placas em estoque',data.stock,'/plates?status=stock','Disponíveis para vincular cliente e destino']
-  ]){const card=el('article',undefined,'record-card metric-card');card.append(el('h2',label),el('p',number(value),'metric-value'),el('small',note));const anchor=link('',href);anchor.append(card);$('#overview-metrics').append(anchor);}
+   ['Placas em estoque',data.stock,'/plates?status=stock','Disponíveis para vincular cliente e destino'],
+   ['Acessos em 30 dias',data.scans.days30,'/analytics','Acessos registrados, incluindo repetições']
+  ]){const card=el('article',undefined,'record-card metric-card');const head=el('div',undefined,'dashboard-kpi-top');head.append(el('h2',label),el('span','↗','dashboard-kpi-arrow'));card.append(head,el('p',number(value),'metric-value'),el('small',note));const anchor=link('',href);anchor.append(card);$('#overview-metrics').append(anchor);}
   $('#scan-metrics').replaceChildren();
   for(const [key,label] of [['today','Hoje'],['days7','Últimos 7 dias'],['days30','Últimos 30 dias'],['total','Total']]){
    const metric=el('div',undefined,key==='days30'?'featured-metric':'');metric.append(el('strong',number(data.scans[key])),el('span',label));$('#scan-metrics').append(metric);
@@ -47,7 +48,24 @@
   }
   if(!data.recent.length)$('#recent').append(el('p','Cadastros e alterações recentes aparecerão aqui.','empty-state'));
   $('#top-plates').replaceChildren();
-  for(const plate of data.topPlates){const row=link('','/plates?code='+encodeURIComponent(plate.code),'activity-row');const detail=el('div');detail.append(el('p',plate.code),el('small',plate.name||'Sem cliente'));row.append(detail,el('strong',number(plate.count)));$('#top-plates').append(row);}
+  const maxCount=Math.max(1,...data.topPlates.map(plate=>Number(plate.count)||0));
+  for(const [index,plate] of data.topPlates.entries()){
+   const row=link('','/plates?code='+encodeURIComponent(plate.code),'ranked-plate');
+   const top=el('div',undefined,'ranked-plate-main');
+   const position=el('span',String(index+1).padStart(2,'0'),'ranked-plate-index');
+   const detail=el('div',undefined,'ranked-plate-detail');
+   detail.append(el('strong',plate.code),el('span',plate.name||'Sem cliente'));
+   const count=el('strong',number(plate.count),'ranked-plate-count');count.title=number(plate.count)+' acessos';
+   top.append(position,detail,count);
+   const track=el('div',undefined,'ranked-plate-track');
+   track.setAttribute('role','img');
+   track.setAttribute('aria-label',plate.code+': '+number(plate.count)+' acessos nos últimos 30 dias');
+   const fill=el('span',undefined,'ranked-plate-fill');
+   fill.style.width=(Math.max(0,Number(plate.count)||0)/maxCount*100)+'%';
+   track.append(fill);
+   row.append(top,track);
+   $('#top-plates').append(row);
+  }
   if(!data.topPlates.length)$('#top-plates').append(el('p','Ainda não há acessos nos últimos 30 dias.','empty-state'));
  }
  const money=value=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)/100);
