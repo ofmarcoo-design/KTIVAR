@@ -376,3 +376,181 @@ header{height:max(60px,calc(var(--text-md) * 3 + 12px))}
  .app-shell .overview-grid>a .record-card,
  .app-shell .dashboard-shortcuts a{transition:none}
 }
+
+/* Dashboard Phase B — visible operational hierarchy without modifying data or API logic. */
+body:not(.analytics-page) #operations-section{
+ margin:8px 0 28px;
+}
+body:not(.analytics-page) #operations-section>.section-heading{
+ display:flex;
+ align-items:center;
+ padding:0 0 15px;
+ margin-bottom:15px;
+ border-bottom:1px solid #e2e8f0;
+}
+body:not(.analytics-page) #operations-section>.section-heading h2{
+ font-size:19px;
+ letter-spacing:-.025em;
+ color:var(--text);
+}
+body:not(.analytics-page) #overview-metrics{
+ display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:16px;
+}
+body:not(.analytics-page) #overview-metrics>a{
+ min-width:0;
+ display:block;
+ color:inherit;
+ border-radius:14px;
+ text-decoration:none;
+}
+body:not(.analytics-page) #overview-metrics .record-card{
+ min-height:158px;
+ height:100%;
+ display:flex;
+ flex-direction:column;
+ align-items:flex-start;
+ gap:0;
+ padding:23px 24px;
+ border:1px solid #dbe4f0;
+ border-radius:14px;
+ background:linear-gradient(160deg,#fff 62%,#f6f9ff 100%);
+ box-shadow:0 2px 9px rgba(15,23,42,.035);
+}
+body:not(.analytics-page) #overview-metrics .record-card h2{
+ font-size:13px;
+ font-weight:600;
+ color:var(--secondary);
+ border:0;
+ padding:0;
+ line-height:1.4;
+}
+body:not(.analytics-page) #overview-metrics .metric-value{
+ font-size:clamp(28px,2.6vw,36px);
+ line-height:1.15;
+ font-weight:700;
+ letter-spacing:-.035em;
+ color:var(--text);
+ font-variant-numeric:tabular-nums;
+ margin:15px 0 9px;
+}
+body:not(.analytics-page) #overview-metrics .record-card small{
+ margin-top:auto;
+ line-height:1.5;
+ font-size:12px;
+ color:var(--muted);
+}
+body:not(.analytics-page) #scan-section{
+ background:linear-gradient(150deg,#fff 60%,#f7faff);
+}
+body:not(.analytics-page) #scan-section .analytics-panel{
+ display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:12px;
+ padding:16px 0 7px;
+}
+body:not(.analytics-page) #scan-section .analytics-panel>div{
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ gap:6px;
+ min-height:98px;
+ border:1px solid #e1e9f4;
+ border-radius:10px;
+ padding:16px;
+ background:rgba(255,255,255,.82);
+}
+body:not(.analytics-page) #scan-section .analytics-panel .featured-metric{
+ border:1px solid #bfdbfe;
+ background:#eff6ff;
+ padding:16px;
+}
+body:not(.analytics-page) #scan-section .analytics-panel strong{
+ font-size:clamp(23px,2vw,30px);
+ font-weight:700;
+ letter-spacing:-.025em;
+ font-variant-numeric:tabular-nums;
+ line-height:1.2;
+}
+body:not(.analytics-page) #scan-section .analytics-panel span{
+ font-size:12px;
+ color:var(--muted);
+ line-height:1.4;
+}
+body:not(.analytics-page) .summary-grid-wide{
+ align-items:stretch;
+}
+body:not(.analytics-page) .summary-grid-wide>.summary-panel{
+ height:100%;
+}
+body:not(.analytics-page) #commercial-section .summary-stats{
+ gap:12px;
+}
+body:not(.analytics-page) #commercial-section .summary-stats>.metric-card{
+ border-radius:9px;
+ padding:12px;
+ background:#f8fafc;
+ min-width:0;
+}
+body:not(.analytics-page) #commercial-section .summary-stats .metric-value{
+ font-size:clamp(17px,1.7vw,23px);
+ overflow-wrap:anywhere;
+}
+body:not(.analytics-page) .summary-panel .activity-row{
+ border-radius:7px;
+ padding-left:6px;
+ padding-right:6px;
+}
+@media(hover:hover){
+ body:not(.analytics-page) .summary-panel a.activity-row:hover{
+  background:#f4f8ff;
+  text-decoration:none;
+ }
+ body:not(.analytics-page) #overview-metrics>a:hover .record-card{
+  border-color:#93c5fd;
+  box-shadow:0 9px 22px rgba(37,99,235,.09);
+ }
+}
+body:not(.analytics-page) .summary-panel a.activity-row:focus-visible{
+ outline:2px solid var(--primary);
+ outline-offset:2px;
+}
+@media(max-width:1150px){
+ body:not(.analytics-page) #scan-section .analytics-panel{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+}
+@media(max-width:800px){
+ body:not(.analytics-page) #overview-metrics{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+}
+@media(max-width:650px){
+ body:not(.analytics-page) #operations-section{margin:4px 0 24px}
+ body:not(.analytics-page) #overview-metrics{grid-template-columns:1fr;gap:10px}
+ body:not(.analytics-page) #overview-metrics .record-card{
+  min-height:0;
+  padding:17px 18px;
+ }
+ body:not(.analytics-page) #overview-metrics .metric-value{
+  font-size:30px;
+  margin:9px 0 7px;
+ }
+ body:not(.analytics-page) #scan-section .analytics-panel{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+ }
+ body:not(.analytics-page) #scan-section .analytics-panel>div{
+  min-height:90px;
+  padding:12px;
+ }
+ body:not(.analytics-page) #commercial-section .summary-stats{
+  grid-template-columns:1fr;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body:not(.analytics-page) #overview-metrics>a .record-card{
+  transition:none;
+ }
+}
