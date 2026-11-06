@@ -43,3 +43,14 @@ test('initial skeletons are shape matched and failed loads expose a retry messag
  assert.ok(dashboard.includes('Não foi possível carregar estes indicadores'));
  assert.ok(css.includes('Shape-matched loading state'));
 });
+
+test('management modules render a shared panel with meaningful headings',()=>{
+ const html=read('views/manage.html');
+ const js=read('public/manage.js');
+ assert.ok(html.includes('class="module-data-shell"'));
+ assert.ok(html.includes('id="results-heading"'));
+ for(const key of ['clients','products','sales','deals','activities','config']){
+  assert.ok(js.includes(key+':'),key);
+ }
+ assert.ok(css.includes('Shared result composition: clients'));
+});
