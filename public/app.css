@@ -678,7 +678,6 @@ html[data-theme="dark"] :is(.secondary:hover,.dashboard-shortcuts a:hover,.user-
 }
 html[data-theme="dark"] a{color:#93c5fd}
 html[data-theme="dark"] :is(.text-button,.text-link,.section-heading a,.activity-row a,.plate-code){color:#93c5fd}
-html[data-theme="dark"] :is(.download-link,button:not(.secondary):not(.text-button):not(.tertiary):not(.danger):not([data-theme-choice]):not(.collapse-toggle):not(.nav-close):not(.menu-toggle):not(.nav-overlay)){color:#fff}
 html[data-theme="dark"] .theme-options button{color:var(--secondary)}
 html[data-theme="dark"] .theme-options button[aria-pressed="true"]{color:#fff}
 html[data-theme="dark"] :is(.activity-row,.section-heading,.form-footer,.summary-stats,.form-section,.disclosure,.user-panel,.table-wrap,.plate-bulk){
