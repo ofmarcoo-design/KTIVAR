@@ -628,8 +628,8 @@ html[data-theme="dark"]{
  --text:#f1f5f9;
  --secondary:#d2dce9;
  --muted:#a8b8cd;
- --primary:#60a5fa;
- --hover:#93c5fd;
+ --primary:#2563eb;
+ --hover:#1d4ed8;
  --info-bg:#172e50;
  --info-text:#bfdbfe;
  --success-bg:#153b30;
@@ -676,7 +676,11 @@ html[data-theme="dark"] :is(.secondary,.dashboard-shortcuts a,.filters-toolbar .
 html[data-theme="dark"] :is(.secondary:hover,.dashboard-shortcuts a:hover,.user-panel a:hover,.user-panel button:hover,.bottom-nav>a:hover,.bottom-nav>button:hover){
  background:var(--ui-surface-hover);color:var(--text);
 }
-html[data-theme="dark"] :is(.text-button,.text-link,.section-heading a,.activity-row a,.plate-code){color:var(--primary)}
+html[data-theme="dark"] a{color:#93c5fd}
+html[data-theme="dark"] :is(.text-button,.text-link,.section-heading a,.activity-row a,.plate-code){color:#93c5fd}
+html[data-theme="dark"] :is(.download-link,button:not(.secondary):not(.text-button):not(.tertiary):not(.danger):not([data-theme-choice]):not(.collapse-toggle):not(.nav-close):not(.menu-toggle):not(.nav-overlay)){color:#fff}
+html[data-theme="dark"] .theme-options button{color:var(--secondary)}
+html[data-theme="dark"] .theme-options button[aria-pressed="true"]{color:#fff}
 html[data-theme="dark"] :is(.activity-row,.section-heading,.form-footer,.summary-stats,.form-section,.disclosure,.user-panel,.table-wrap,.plate-bulk){
  border-color:var(--border);
 }
