@@ -620,29 +620,29 @@ html[data-theme="light"] body:not(.analytics-page) #commercial-section .summary-
 /* Dark theme uses the same layout and shared tokens, not inverted photographs or brand SVGs. */
 html[data-theme="dark"]{
  color-scheme:dark;
- --bg:#0b1120;
- --sidebar:#0c1323;
- --surface:#151e2e;
- --raised:#1c293b;
- --border:#334155;
- --text:#f1f5f9;
- --secondary:#d2dce9;
- --muted:#a8b8cd;
- --primary:#2563eb;
- --hover:#1d4ed8;
- --info-bg:#172e50;
+ --bg:#0b0b0c;
+ --sidebar:#111112;
+ --surface:#19191b;
+ --raised:#242426;
+ --border:#333337;
+ --text:#f5f5f6;
+ --secondary:#dedee2;
+ --muted:#aaaab2;
+ --primary:#3b82f6;
+ --hover:#2563eb;
+ --info-bg:#192b42;
  --info-text:#bfdbfe;
- --success-bg:#153b30;
+ --success-bg:#153628;
  --success-text:#a7f3d0;
- --warning-bg:#42331e;
+ --warning-bg:#38301d;
  --warning-text:#fde68a;
- --danger-bg:#42252a;
+ --danger-bg:#382123;
  --danger-text:#fecaca;
- --ui-surface-muted:#1a2637;
- --ui-surface-hover:#253349;
- --ui-surface-selected:#1d3558;
- --ui-border-soft:#334155;
- --ui-interactive-border:#52657b;
+ --ui-surface-muted:#202022;
+ --ui-surface-hover:#29292c;
+ --ui-surface-selected:#192a40;
+ --ui-border-soft:#333337;
+ --ui-interactive-border:#58585e;
  --ui-elevation:none;
  --ui-shadow-rest:none;
  --ui-shadow-hover:0 4px 16px rgba(0,0,0,.18);
@@ -655,18 +655,18 @@ html[data-theme="dark"] .workspace{color:var(--text);background:var(--bg)}
 html[data-theme="dark"] header{background:var(--surface);border-color:var(--border)}
 html[data-theme="dark"] .module-nav{background:var(--sidebar)}
 html[data-theme="dark"] .module-nav>a:not(.brand):hover,
-html[data-theme="dark"] .module-nav>a[aria-current=page]{background:#23334b}
+html[data-theme="dark"] .module-nav>a[aria-current=page]{background:var(--ui-surface-selected)}
 html[data-theme="dark"] :is(.record-card,.metric-card,.summary-panel,.settings-section,.attention-panel,.filters-toolbar,.login-card,.portal-page .record-card,.plate-bulk,.settings-account,.user-panel,.theme-control,.settings-theme,.dashboard-columns>section){
  background:var(--surface);border-color:var(--border);color:var(--text);box-shadow:none;
 }
 html[data-theme="dark"] :is(.filters-toolbar .more-filters>summary,.filters-toolbar .more-filters>.plate-filters,.filter-summary .filter-chip,.kanban-column,.empty-state,#empty,.qr-panel,.user-avatar,.bottom-nav,.form-section,.disclosure,.more-filters,.login-mark){
  background:var(--raised);border-color:var(--border);color:var(--text);
 }
-html[data-theme="dark"] :is(.table-wrap th,thead th){background:#202d40;color:var(--secondary);border-color:var(--border)}
+html[data-theme="dark"] :is(.table-wrap th,thead th){background:var(--raised);color:var(--secondary);border-color:var(--border)}
 html[data-theme="dark"] :is(.table-wrap td,tbody td,thead,tbody tr){border-color:var(--border);color:var(--text)}
-html[data-theme="dark"] :is(tbody tr:hover,.table-wrap tbody tr:hover){background:#202d40}
+html[data-theme="dark"] :is(tbody tr:hover,.table-wrap tbody tr:hover){background:var(--ui-surface-hover)}
 html[data-theme="dark"] :is(input,select,textarea){
- background:#111c2e;border-color:#52657b;color:var(--text);color-scheme:dark;
+ background:#141416;border-color:var(--ui-interactive-border);color:var(--text);color-scheme:dark;
 }
 html[data-theme="dark"] :is(input,textarea)::placeholder{color:#b0bdd0}
 html[data-theme="dark"] input[readonly]{background:var(--raised);color:var(--secondary)}
@@ -683,9 +683,9 @@ html[data-theme="dark"] .theme-options button[aria-pressed="true"]{color:#fff}
 html[data-theme="dark"] :is(.activity-row,.section-heading,.form-footer,.summary-stats,.form-section,.disclosure,.user-panel,.table-wrap,.plate-bulk){
  border-color:var(--border);
 }
-html[data-theme="dark"] .badge.inactive{background:#263347;border-color:var(--border);color:#cbd5e1}
+html[data-theme="dark"] .badge.inactive{background:#28282a;border-color:var(--border);color:#d4d4d8}
 html[data-theme="dark"] .badge.stock{background:#42331e;border-color:#70532e;color:#fde68a}
-html[data-theme="dark"] :is(.badge.info,.badge.configured,.badge.ready,.badge.delivered){background:#18345a;border-color:#365e8b;color:#bfdbfe}
+html[data-theme="dark"] :is(.badge.info,.badge.configured,.badge.ready,.badge.delivered){background:#1d3046;border-color:#36516f;color:#bfdbfe}
 html[data-theme="dark"] .badge.success{background:var(--success-bg);border-color:#27664f;color:var(--success-text)}
 html[data-theme="dark"] .filter-summary .filter-chip:hover{background:var(--ui-surface-hover)}
 html[data-theme="dark"] .analytics-panel>div{background:var(--surface);border-color:var(--border)}
@@ -709,13 +709,13 @@ html[data-theme="dark"] dialog{
 html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.72)}
 html[data-theme="dark"] .user-panel{background:var(--surface)}
 html[data-theme="dark"] .theme-options{background:var(--raised);border-color:var(--border)}
-html[data-theme="dark"] .theme-options button[aria-pressed="true"]{background:#2d405b;border-color:#52657b;color:#fff}
+html[data-theme="dark"] .theme-options button[aria-pressed="true"]{background:#303035;border-color:var(--ui-interactive-border);color:#fff}
 html[data-theme="dark"] .theme-options button:hover{background:var(--ui-surface-hover)}
 html[data-theme="dark"] .bottom-nav [aria-current=page],
 html[data-theme="dark"] .bottom-nav .current-section{background:var(--ui-surface-selected);color:#bfdbfe}
 html[data-theme="dark"] .kanban-column{background:#1b283b}
 html[data-theme="dark"] .kanban .record-card{background:var(--surface)}
-html[data-theme="dark"] .user-avatar{background:#273a54;color:#e2e8f0}
+html[data-theme="dark"] .user-avatar{background:#262628;color:var(--text)}
 html[data-theme="dark"] .login-card .brand-logo,
 html[data-theme="dark"] .portal-page .brand-logo{background:#fff;border-radius:8px;padding:6px}
 html[data-theme="dark"] .app-breadcrumb strong{color:var(--secondary)}
@@ -1204,7 +1204,7 @@ html[data-theme="dark"] .app-shell .kanban-column{background:var(--raised)}
 html[data-theme="dark"] .app-shell .kanban .record-card{background:var(--surface)}
 html[data-theme="dark"] .app-shell .filters-toolbar input,
 html[data-theme="dark"] .app-shell .report-period :is(input,select){
- background:#111c2e;border-color:#52657b;color:var(--text);
+ background:#141416;border-color:var(--ui-interactive-border);color:var(--text);
 }
 html[data-theme="dark"] .app-shell .analytics-panel>div{background:var(--raised)}
 @media(min-width:901px){
@@ -1445,14 +1445,7 @@ html[data-theme="light"]{
  --muted:#52627c;
  --secondary:#334155;
 }
-html[data-theme="dark"]{
- --sidebar:#101725;
- --bg:#0b1120;
- --surface:#161e2d;
- --raised:#222d3e;
- --ui-surface-hover:#263750;
- --ui-surface-selected:#1d3558;
-}
+/* Dark theme inherits a single neutral graphite palette from the shared tokens. */
 /* NAVIGATION: restore the light, low-noise sidebar seen in the approved example. */
 .app-shell .module-nav{
  background:var(--sidebar);border-right:1px solid var(--border);
@@ -1493,7 +1486,7 @@ html[data-theme="dark"] .app-shell .module-nav>a[aria-current=page]{
  background:var(--ui-surface-selected);
  color:var(--primary);font-weight:650;box-shadow:none;
 }
-html[data-theme="dark"] .app-shell .module-nav>a:not(.brand){color:#c0cee0}
+html[data-theme="dark"] .app-shell .module-nav>a:not(.brand){color:var(--secondary)}
 html[data-theme="dark"] .app-shell .module-nav>a[aria-current=page]{color:#93c5fd}
 .app-shell .module-nav .sidebar-note{display:none}
 .app-shell .module-nav .collapse-toggle{
@@ -1891,3 +1884,46 @@ body:not(.analytics-page) .dashboard-followup>#attention{
 body:not(.analytics-page).app-shell #commercial-section .summary-stats>.metric-card{
  background:transparent;
 }
+
+/* Approved charcoal theme: neutral layered blacks across all modules.
+   Shared semantic values above control app shell, forms, tables, CRM and reports.
+   Blue is reserved for affordances, focus and selected states. */
+html[data-theme="dark"] :is(body,.workspace){background:var(--bg);color:var(--text)}
+html[data-theme="dark"] .app-shell .module-nav{background:var(--sidebar);border-color:var(--border)}
+html[data-theme="dark"] .app-shell>header{background:#131315;border-color:var(--border)}
+html[data-theme="dark"] .app-shell :is(.record-card,.summary-panel,.settings-section,.module-data-shell,.plate-list-panel,.report-overview,.report-operation,.filters-toolbar,.list,.attention-panel,.report-group,.user-panel,.settings-theme){
+ background:var(--surface);border-color:var(--border);box-shadow:none;
+}
+html[data-theme="dark"] .app-shell :is(.kanban-column,.empty-state,#empty,.form-section){background:var(--raised);border-color:var(--border)}
+html[data-theme="dark"] .app-shell :is(input,textarea,select){
+ background:#141416;border-color:var(--ui-interactive-border);color:var(--text);
+}
+html[data-theme="dark"] .app-shell :is(input,textarea)::placeholder{color:var(--muted)}
+html[data-theme="dark"] .app-shell :is(.table-wrap th,thead th){background:var(--raised);color:var(--secondary)}
+html[data-theme="dark"] .app-shell :is(.table-wrap tbody tr:hover,tbody tr:hover){background:var(--ui-surface-hover)}
+html[data-theme="dark"] .app-shell :is(.global-command #global-command-input,.global-command kbd){
+ background:var(--raised);border-color:var(--border);color:var(--text);
+}
+html[data-theme="dark"] .app-shell .header-theme-toggle{
+ background:var(--raised);border-color:var(--border);color:var(--secondary);
+}
+html[data-theme="dark"] .app-shell .header-theme-toggle:hover{background:var(--ui-surface-hover);color:#93c5fd}
+html[data-theme="dark"] .app-shell .command-results{box-shadow:0 12px 28px #0009}
+html[data-theme="dark"] .app-shell .module-nav>a[aria-current=page]{
+ background:var(--ui-surface-selected);color:#93c5fd;
+}
+html[data-theme="dark"] .app-shell .module-nav>a:not(.brand):hover{
+ background:var(--ui-surface-hover);color:var(--text);
+}
+html[data-theme="dark"] .app-shell .dashboard-shortcuts a{
+ background:var(--surface);border-color:var(--border);
+}
+html[data-theme="dark"] .app-shell .analytics-panel>div{
+ background:var(--raised);border-color:var(--border);
+}
+html[data-theme="dark"] body:not(.analytics-page) #overview-metrics .kpi-icon{
+ background:var(--ui-surface-selected);color:#93c5fd;
+}
+html[data-theme="dark"] .app-shell .nav-close{background:var(--raised);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .app-shell .nav-close:hover{background:var(--ui-surface-hover)}
+html[data-theme="dark"] .app-shell .bottom-nav{background:var(--sidebar);border-color:var(--border)}
