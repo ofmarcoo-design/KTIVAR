@@ -60,8 +60,9 @@
   const appearance=document.createElement('button');appearance.type='button';appearance.className='header-theme-toggle';appearance.setAttribute('aria-label','Alternar tema claro e escuro');appearance.title='Alternar aparência';
   appearance.textContent='◐';
   appearance.addEventListener('click',()=>window.KTIVARTheme?.set(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+  const account=header.querySelector('.account');
   if(account){header.insertBefore(command,account);header.insertBefore(appearance,account);}
-  const account=header.querySelector('.account');if(account){
+  if(account){
    const email=account.querySelector('#email'),logout=account.querySelector('#logout');
    const menu=document.createElement('details');menu.className='user-menu';
    const summary=document.createElement('summary');summary.setAttribute('aria-label','Menu da conta');
