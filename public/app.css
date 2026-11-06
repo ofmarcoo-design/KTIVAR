@@ -554,3 +554,170 @@ body:not(.analytics-page) .summary-panel a.activity-row:focus-visible{
   transition:none;
  }
 }
+
+/* KTIVAR neutral UI and two accessible appearance palettes.
+   Light is the default. Blue is reserved for actions, focus and selection. */
+:root{
+ --ui-surface-muted:#f8fafc;
+ --ui-surface-hover:#f1f5f9;
+ --ui-surface-selected:#eff6ff;
+ --ui-border-soft:#e2e8f0;
+ --ui-interactive-border:#cbd5e1;
+ --ui-elevation:0 1px 3px rgba(15,23,42,.025);
+}
+body{background:var(--bg);color:var(--text)}
+/* Shared, low-noise light refinement across operation, commercial and settings. */
+.app-shell .record-card,.app-shell .summary-panel,.app-shell .settings-section,
+.app-shell .attention-panel,.app-shell .filters-toolbar{
+ box-shadow:var(--ui-elevation);
+}
+.app-shell .record-card,.app-shell .summary-panel,.app-shell .settings-section{
+ border-radius:10px;
+}
+.app-shell .section-heading{border-bottom-color:var(--border)}
+.app-shell .section-heading h2{font-weight:600}
+.app-shell .user-panel,.app-shell .filters-toolbar .more-filters>.plate-filters{
+ background:var(--surface);
+}
+.app-shell .dashboard-shortcuts a{background:var(--surface)}
+/* The earlier dashboard gradients were stronger than the chosen references. */
+html[data-theme="light"] body:not(.analytics-page) #overview-metrics .record-card{
+ background:var(--surface);
+ border-color:var(--border);
+ box-shadow:var(--ui-elevation);
+}
+html[data-theme="light"] body:not(.analytics-page) #scan-section{
+ background:var(--surface);
+}
+html[data-theme="light"] body:not(.analytics-page) #scan-section .analytics-panel>div{
+ background:var(--surface);
+ border-color:var(--border);
+}
+html[data-theme="light"] body:not(.analytics-page) #scan-section .analytics-panel .featured-metric{
+ background:var(--ui-surface-selected);
+ border-color:#bfdbfe;
+}
+html[data-theme="light"] body:not(.analytics-page) #commercial-section .summary-stats>.metric-card{
+ background:var(--ui-surface-muted);
+}
+.theme-control{padding:12px 8px 10px;border-top:1px solid var(--border)}
+.theme-control-label{display:block;margin-bottom:9px;color:var(--muted);font-size:12px;font-weight:600}
+.theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:var(--raised);border:1px solid var(--border);border-radius:9px}
+.theme-options button,.app-shell .theme-options button{
+ display:block;width:100%;min-width:0;min-height:36px;padding:8px 4px;border:1px solid transparent;
+ background:transparent;color:var(--secondary);font-size:12px;line-height:1.3;border-radius:6px;
+}
+.theme-options button[aria-pressed="true"],.app-shell .theme-options button[aria-pressed="true"]{
+ background:var(--surface);border-color:var(--border);color:var(--text);
+ box-shadow:0 1px 2px rgba(15,23,42,.06);font-weight:600;
+}
+.theme-options button:hover,.app-shell .theme-options button:hover{
+ background:var(--ui-surface-hover);color:var(--text);
+}
+.theme-options button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.settings-theme{display:none;max-width:560px;margin:0 0 22px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+@media(max-width:900px){.settings-theme{display:block}}
+/* Dark theme uses the same layout and shared tokens, not inverted photographs or brand SVGs. */
+html[data-theme="dark"]{
+ color-scheme:dark;
+ --bg:#0b1120;
+ --sidebar:#0c1323;
+ --surface:#151e2e;
+ --raised:#1c293b;
+ --border:#334155;
+ --text:#f1f5f9;
+ --secondary:#d2dce9;
+ --muted:#a8b8cd;
+ --primary:#60a5fa;
+ --hover:#93c5fd;
+ --info-bg:#172e50;
+ --info-text:#bfdbfe;
+ --success-bg:#153b30;
+ --success-text:#a7f3d0;
+ --warning-bg:#42331e;
+ --warning-text:#fde68a;
+ --danger-bg:#42252a;
+ --danger-text:#fecaca;
+ --ui-surface-muted:#1a2637;
+ --ui-surface-hover:#253349;
+ --ui-surface-selected:#1d3558;
+ --ui-border-soft:#334155;
+ --ui-interactive-border:#52657b;
+ --ui-elevation:none;
+ --ui-shadow-rest:none;
+ --ui-shadow-hover:0 4px 16px rgba(0,0,0,.18);
+ --ui-focus-ring:rgba(96,165,250,.25);
+}
+/* Components contain some historical fixed light colors; explicitly cover them. */
+html[data-theme="dark"] body,
+html[data-theme="dark"] header,
+html[data-theme="dark"] .workspace{color:var(--text);background:var(--bg)}
+html[data-theme="dark"] header{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .module-nav{background:var(--sidebar)}
+html[data-theme="dark"] .module-nav>a:not(.brand):hover,
+html[data-theme="dark"] .module-nav>a[aria-current=page]{background:#23334b}
+html[data-theme="dark"] :is(.record-card,.metric-card,.summary-panel,.settings-section,.attention-panel,.filters-toolbar,.login-card,.portal-page .record-card,.plate-bulk,.settings-account,.user-panel,.theme-control,.settings-theme,.dashboard-columns>section){
+ background:var(--surface);border-color:var(--border);color:var(--text);box-shadow:none;
+}
+html[data-theme="dark"] :is(.filters-toolbar .more-filters>summary,.filters-toolbar .more-filters>.plate-filters,.filter-summary .filter-chip,.kanban-column,.empty-state,#empty,.qr-panel,.user-avatar,.bottom-nav,.form-section,.disclosure,.more-filters,.login-mark){
+ background:var(--raised);border-color:var(--border);color:var(--text);
+}
+html[data-theme="dark"] :is(.table-wrap th,thead th){background:#202d40;color:var(--secondary);border-color:var(--border)}
+html[data-theme="dark"] :is(.table-wrap td,tbody td,thead,tbody tr){border-color:var(--border);color:var(--text)}
+html[data-theme="dark"] :is(tbody tr:hover,.table-wrap tbody tr:hover){background:#202d40}
+html[data-theme="dark"] :is(input,select,textarea){
+ background:#111c2e;border-color:#52657b;color:var(--text);color-scheme:dark;
+}
+html[data-theme="dark"] :is(input,textarea)::placeholder{color:#b0bdd0}
+html[data-theme="dark"] input[readonly]{background:var(--raised);color:var(--secondary)}
+html[data-theme="dark"] :is(.secondary,.dashboard-shortcuts a,.filters-toolbar .more-filters>summary,.bottom-nav>a,.bottom-nav>button,.user-panel a,.user-panel button){
+ background:var(--surface);border-color:var(--border);color:var(--secondary);
+}
+html[data-theme="dark"] :is(.secondary:hover,.dashboard-shortcuts a:hover,.user-panel a:hover,.user-panel button:hover,.bottom-nav>a:hover,.bottom-nav>button:hover){
+ background:var(--ui-surface-hover);color:var(--text);
+}
+html[data-theme="dark"] :is(.text-button,.text-link,.section-heading a,.activity-row a,.plate-code){color:var(--primary)}
+html[data-theme="dark"] :is(.activity-row,.section-heading,.form-footer,.summary-stats,.form-section,.disclosure,.user-panel,.table-wrap,.plate-bulk){
+ border-color:var(--border);
+}
+html[data-theme="dark"] .badge.inactive{background:#263347;border-color:var(--border);color:#cbd5e1}
+html[data-theme="dark"] .badge.stock{background:#42331e;border-color:#70532e;color:#fde68a}
+html[data-theme="dark"] :is(.badge.info,.badge.configured,.badge.ready,.badge.delivered){background:#18345a;border-color:#365e8b;color:#bfdbfe}
+html[data-theme="dark"] .badge.success{background:var(--success-bg);border-color:#27664f;color:var(--success-text)}
+html[data-theme="dark"] .filter-summary .filter-chip:hover{background:var(--ui-surface-hover)}
+html[data-theme="dark"] .analytics-panel>div{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .analytics-panel .featured-metric{background:var(--ui-surface-selected);border-color:#4a7fbd}
+html[data-theme="dark"] .analytics-panel strong,
+html[data-theme="dark"] .metric-card .metric-value{color:var(--text)}
+html[data-theme="dark"] body:not(.analytics-page) #overview-metrics .record-card,
+html[data-theme="dark"] body:not(.analytics-page) #scan-section,
+html[data-theme="dark"] body:not(.analytics-page) #scan-section .analytics-panel>div,
+html[data-theme="dark"] body:not(.analytics-page) #commercial-section .summary-stats>.metric-card{
+ background:var(--surface);border-color:var(--border);box-shadow:none;
+}
+html[data-theme="dark"] body:not(.analytics-page) #scan-section .analytics-panel .featured-metric{
+ background:var(--ui-surface-selected);border-color:#4777ad;
+}
+html[data-theme="dark"] .summary-panel .activity-row:has(a):hover,
+html[data-theme="dark"] .summary-panel a.activity-row:hover{background:var(--ui-surface-hover)}
+html[data-theme="dark"] dialog{
+ background:var(--surface);border-color:var(--border);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+html[data-theme="dark"] dialog::backdrop{background:rgba(0,0,0,.72)}
+html[data-theme="dark"] .user-panel{background:var(--surface)}
+html[data-theme="dark"] .theme-options{background:var(--raised);border-color:var(--border)}
+html[data-theme="dark"] .theme-options button[aria-pressed="true"]{background:#2d405b;border-color:#52657b;color:#fff}
+html[data-theme="dark"] .theme-options button:hover{background:var(--ui-surface-hover)}
+html[data-theme="dark"] .bottom-nav [aria-current=page],
+html[data-theme="dark"] .bottom-nav .current-section{background:var(--ui-surface-selected);color:#bfdbfe}
+html[data-theme="dark"] .kanban-column{background:#1b283b}
+html[data-theme="dark"] .kanban .record-card{background:var(--surface)}
+html[data-theme="dark"] .user-avatar{background:#273a54;color:#e2e8f0}
+html[data-theme="dark"] .login-card .brand-logo,
+html[data-theme="dark"] .portal-page .brand-logo{background:#fff;border-radius:8px;padding:6px}
+html[data-theme="dark"] .app-breadcrumb strong{color:var(--secondary)}
+html[data-theme="dark"] .settings-account #email{color:var(--muted)}
+/* Print always uses readable paper surfaces, regardless of current theme. */
+@media print{
+ html[data-theme="dark"]{color-scheme:light;--bg:#fff;--surface:#fff;--raised:#f8fafc;--text:#0f172a;--secondary:#334155;--muted:#475569;--border:#d4dce5}
+}
