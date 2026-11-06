@@ -57,12 +57,13 @@
     }
     wrap.append(group);return wrap;
    };
-   panel.append(settings,themeControl(),logout);window.KTIVARTheme?.apply();
+   panel.append(settings,themeControl(),logout);
    menu.append(summary,panel);account.replaceChildren(menu);
    const isSettings=location.pathname==='/manage'&&new URLSearchParams(location.search).get('module')==='config';
    const card=isSettings?document.createElement('section'):null;
    let cardName,cardAvatar,cardIdentity;
-   if(card){card.className='account settings-account';card.setAttribute('aria-label','Sua conta');cardAvatar=avatar.cloneNode(true);cardIdentity=document.createElement('div');cardIdentity.className='user-identity';cardName=name.cloneNode(true);cardIdentity.append(cardName);card.append(cardAvatar,cardIdentity);workspace.querySelector('.title-row').after(card);const mobileTheme=themeControl();mobileTheme.classList.add('settings-theme');card.after(mobileTheme);window.KTIVARTheme?.apply();}
+   if(card){card.className='account settings-account';card.setAttribute('aria-label','Sua conta');cardAvatar=avatar.cloneNode(true);cardIdentity=document.createElement('div');cardIdentity.className='user-identity';cardName=name.cloneNode(true);cardIdentity.append(cardName);card.append(cardAvatar,cardIdentity);workspace.querySelector('.title-row').after(card);const mobileTheme=themeControl();mobileTheme.classList.add('settings-theme');card.after(mobileTheme);}
+   window.KTIVARTheme?.apply();
    // A single email/logout pair retains the existing session and event handlers at either size.
    const syncAccount=()=>{header.hidden=mobile.matches;if(card){card.hidden=!mobile.matches;if(mobile.matches){cardIdentity.append(email);card.append(logout);}else{panel.insertBefore(email,settings);panel.append(logout);}}menu.open=false;};
    syncAccount();mobile.addEventListener('change',syncAccount);
