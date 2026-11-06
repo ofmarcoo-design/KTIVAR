@@ -66,3 +66,22 @@ test('plates and reports use the same real-data panel structure',()=>{
  assert.ok(reports.includes('id="operation"'));
  assert.ok(reports.includes('id="breakdowns"'));
 });
+
+test('approved dashboard uses four icon KPIs and only real period totals',()=>{
+ const src=read('public/dashboard.js');
+ const html=read('views/dashboard.html');
+ assert.ok(src.includes("const scale=$('#access-scale')"));
+ assert.ok(src.includes('data.scans[key]'));
+ assert.ok(src.includes('kpi-icon'));
+ assert.ok(html.includes('id="access-scale"'));
+ assert.ok(!src.includes('Math.random('));
+ assert.ok(!html.includes('90 dias'));
+});
+test('shared header search only exposes existing module navigation',()=>{
+ const shell=read('public/shell.js');
+ assert.ok(shell.includes('nav.querySelectorAll(\'a:not(.brand)\')'));
+ assert.ok(shell.includes('global-command-input'));
+ assert.ok(shell.includes('location.assign(first.href)'));
+ assert.ok(shell.includes('KTIVARTheme?.set('));
+ assert.ok(css.includes('KTIVAR V2'));
+});
