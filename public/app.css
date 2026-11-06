@@ -1798,3 +1798,11 @@ body:not(.analytics-page) .summary-grid:has(#attention)>.summary-panel{
 html[data-theme="dark"] .app-shell .module-nav .nav-close{
  background:var(--raised);color:#f1f5f9;border-color:var(--border);
 }
+
+/* Sidebar collapsed state must override the expanded V2 dimensions. */
+@media(min-width:901px){
+ .app-shell.nav-collapsed .module-nav{width:76px;padding-left:8px;padding-right:8px}
+ .app-shell.nav-collapsed>header,.app-shell.nav-collapsed .workspace{margin-left:76px}
+ .app-shell.nav-collapsed .module-nav>a:not(.brand){justify-content:center;padding:12px}
+ .app-shell.nav-collapsed .module-nav .sidebar-brand{padding:6px;min-height:48px}
+}
