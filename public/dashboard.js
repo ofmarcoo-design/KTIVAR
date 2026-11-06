@@ -15,15 +15,34 @@
  }
  function metrics(data){
   $('#overview-metrics').replaceChildren();
-  for(const [label,value,href,note] of [
-   ['Clientes cadastrados',data.clients,'/manage?module=clients','Cadastros disponíveis para consulta'],
-   ['Placas ativas',data.active,'/plates?active=true',`${number(data.plates)} placas cadastradas no total`],
-   ['Placas em estoque',data.stock,'/plates?status=stock','Disponíveis para vincular cliente e destino'],
-   ['Acessos em 30 dias',data.scans.days30,'/analytics','Acessos registrados, incluindo repetições']
-  ]){const card=el('article',undefined,'record-card metric-card');const head=el('div',undefined,'dashboard-kpi-top');head.append(el('h2',label));card.append(head,el('p',number(value),'metric-value'),el('small',note));const anchor=link('',href);anchor.append(card);$('#overview-metrics').append(anchor);}
+  for(const [label,value,href,note,icon] of [
+   ['Clientes cadastrados',data.clients,'/manage?module=clients','Cadastros disponíveis para consulta','clients'],
+   ['Placas ativas',data.active,'/plates?active=true',`${number(data.plates)} placas cadastradas no total`,'active'],
+   ['Placas em estoque',data.stock,'/plates?status=stock','Disponíveis para vincular cliente e destino','stock'],
+   ['Acessos em 30 dias',data.scans.days30,'/analytics','Acessos registrados, incluindo repetições','access']
+  ]){const card=el('article',undefined,'record-card metric-card');
+   const head=el('div',undefined,'dashboard-kpi-top');
+   const badge=el('span',undefined,'kpi-icon');badge.setAttribute('aria-hidden','true');
+   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.7');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');
+   const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',({clients:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.87',active:'m12 2 9 5-9 5-9-5 9-5z M3 12l9 5 9-5 M3 17l9 5 9-5',stock:'M3 7l9-4 9 4v10l-9 4-9-4V7z M3 7l9 5 9-5 M12 12v9',access:'M4 4l6 17 3-7 7-3L4 4z'})[icon]||'M4 4h16v16H4z');svg.append(path);badge.append(svg);
+   const text=el('div',undefined,'kpi-copy');text.append(el('h2',label),el('p',number(value),'metric-value'));
+   head.append(badge,text);card.append(head,el('small',note));const anchor=link('',href);anchor.append(card);$('#overview-metrics').append(anchor);}
   $('#scan-metrics').replaceChildren();
   for(const [key,label] of [['today','Hoje'],['days7','Últimos 7 dias'],['days30','Últimos 30 dias'],['total','Total']]){
    const metric=el('div',undefined,key==='days30'?'featured-metric':'');metric.append(el('strong',number(data.scans[key])),el('span',label));$('#scan-metrics').append(metric);
+  }
+  const scale=$('#access-scale');
+  if(scale){
+   scale.replaceChildren();
+   const maximum=Math.max(1,Number(data.scans.days30)||0,Number(data.scans.days7)||0,Number(data.scans.today)||0);
+   for(const [key,label] of [['today','Hoje'],['days7','Últimos 7 dias'],['days30','Últimos 30 dias']]){
+    const row=el('div',undefined,'access-scale-row');
+    const head=el('div',undefined,'access-scale-label');
+    head.append(el('span',label),el('strong',number(data.scans[key])));
+    const track=el('div',undefined,'access-scale-track');track.setAttribute('role','img');track.setAttribute('aria-label',label+': '+number(data.scans[key])+' acessos registrados');
+    const fill=el('span',undefined,'access-scale-fill');fill.style.width=(Math.max(0,Number(data.scans[key])||0)/maximum*100)+'%';
+    track.append(fill);row.append(head,track);scale.append(row);
+   }
   }
  }
  function attention(data,activities){
