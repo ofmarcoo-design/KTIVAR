@@ -54,3 +54,15 @@ test('management modules render a shared panel with meaningful headings',()=>{
  }
  assert.ok(css.includes('Shared result composition: clients'));
 });
+
+test('plates and reports use the same real-data panel structure',()=>{
+ const plates=read('views/plates.html');
+ const reports=read('views/reports.html');
+ assert.ok(plates.includes('class="list plate-list-panel"'));
+ assert.ok(plates.includes('id="rows"'));
+ assert.ok(reports.includes('class="report-overview"'));
+ assert.ok(reports.includes('class="report-operation"'));
+ assert.ok(reports.includes('id="metrics"'));
+ assert.ok(reports.includes('id="operation"'));
+ assert.ok(reports.includes('id="breakdowns"'));
+});
