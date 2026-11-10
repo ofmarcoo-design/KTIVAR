@@ -5,7 +5,7 @@ const descriptions={clients:'Clientes, contatos, compras e placas vinculadas.',p
 const catalogs={segments:'Segmentos',sources:'Origens',tags:'Tags',categories:'Categorias de produto',types:'Tipos de produto','activity-types':'Tipos de atividade','loss-reasons':'Motivos de perda',stages:'Etapas do funil'};
 const schemas={
  clients:[['name','Nome','text',true,160],['company','Empresa','text',false,160],['phone','Telefone','tel',false,160],['segmentId','Segmento','ref:segments',true],['sourceId','Origem','ref:sources',true],['ownerId','Responsável comercial','ref:operators'],['city','Cidade','text',false,160],['state','UF','text',false,2],['address','Endereço','text',false,500],['cnpj','CNPJ','text',false,30],['enabled','Disponível','boolean']],
- products:[['name','Nome','text',true,160],['categoryId','Categoria','ref:categories',true],['typeId','Tipo','ref:types',true],['priceCents','Preço padrão (R$)','money'],['generatesPlate','Gera placa inteligente','boolean'],['enabled','Disponível','boolean']],
+ products:[['name','Nome','text',true,160],['categoryId','Categoria','ref:categories',true],['otherLabel','Identificação personalizada de Outros','text',false,160],['description','Descrição do produto ou serviço','textarea',false,2000],['typeId','Tipo','ref:types',true],['priceCents','Preço padrão (R$)','money'],['generatesPlate','Gera placa inteligente','boolean'],['enabled','Disponível','boolean']],
  contacts:[['name','Nome','text',true,160],['whatsapp','WhatsApp','tel',false,160],['phone','Telefone','tel',false,160],['email','E-mail','email',false,254],['instagram','Instagram','text',false,300],['website','Site','url',false,2048],['enabled','Disponível','boolean']],
  config:[['name','Nome','text',true,100],['color','Cor','color',true],['position','Ordem','number',true],['enabled','Disponível','boolean']],
  deals:[['clientId','Cliente','ref:clients',true],['name','Negociação','text',true,160],['estimatedCents','Valor estimado (R$)','money'],['ownerId','Responsável','ref:operators'],['stageId','Etapa','ref:stages',true],['result','Resultado','result',true],['lossReasonId','Motivo da perda (se perdida)','ref:loss-reasons']],
@@ -52,13 +52,29 @@ async function field(def,value,filter=false,scope=null){
    wrapper.refreshReference=()=>{clearTimeout(timer);input.value='';search.value='';const blocked=!!scope&&!scope();input.disabled=search.disabled=blocked;empty.textContent=blocked?'Selecione o cliente primeiro':'Sem vínculo (opcional)';return refresh(++request);};
    if(scope&&!scope())input.disabled=search.disabled=true;wrapper.append(search);
   }
- }else{input=document.createElement(name==='note'?'textarea':'input');if(name==='note')input.rows=3;else input.type=type==='money'?'text':type;input.value=type==='money'?currencyInput(value):value??(type==='color'?'#667085':type==='number'?0:type==='date'&&required?localDate():'');if(type==='money'){input.inputMode='decimal';input.addEventListener('input',()=>{try{const amount=cents(input.value),limit=name==='estimatedCents'?1e11:1e9;input.setCustomValidity(amount>limit?'O valor excede o limite permitido.':'');}catch(e){input.setCustomValidity(e.message);}});}if(max)input.maxLength=max;if(type==='number'){input.min=name==='quantity'?'1':'0';input.max=name==='quantity'?'1000':'100000';input.step='1';input.inputMode='numeric';}const autocomplete={company:'organization',phone:'tel',whatsapp:'tel',email:'email',city:'address-level2',state:'address-level1',address:'street-address'};if(autocomplete[name])input.autocomplete=autocomplete[name];if(name==='state')input.pattern='[A-Za-z]{2}';if(type==='text')input.addEventListener('input',()=>input.setCustomValidity(input.required&&!input.value.trim()?'Preencha este campo.':''));}
+ }else{input=document.createElement(type==='textarea'||name==='note'?'textarea':'input');if(type==='textarea'||name==='note')input.rows=3;else input.type=type==='money'?'text':type;input.value=type==='money'?currencyInput(value):value??(type==='color'?'#667085':type==='number'?0:type==='date'&&required?localDate():'');if(type==='money'){input.inputMode='decimal';input.addEventListener('input',()=>{try{const amount=cents(input.value),limit=name==='estimatedCents'?1e11:1e9;input.setCustomValidity(amount>limit?'O valor excede o limite permitido.':'');}catch(e){input.setCustomValidity(e.message);}});}if(max)input.maxLength=max;if(type==='number'){input.min=name==='quantity'?'1':'0';input.max=name==='quantity'?'1000':'100000';input.step='1';input.inputMode='numeric';}const autocomplete={company:'organization',phone:'tel',whatsapp:'tel',email:'email',city:'address-level2',state:'address-level1',address:'street-address'};if(autocomplete[name])input.autocomplete=autocomplete[name];if(name==='state')input.pattern='[A-Za-z]{2}';if(type==='text')input.addEventListener('input',()=>input.setCustomValidity(input.required&&!input.value.trim()?'Preencha este campo.':''));}
  input.name=name;input.required=!!required&&!filter;wrapper.append(input);return wrapper;
 }
 async function openEditor(type,record=null,extra={}){
  editing=record;editorType=type;context=extra;$('#record-form').reset();$('#record-fields').replaceChildren();$('#form-message').dataset.tone='info';$('#form-message').textContent='';$('#sale-items').hidden=type!=='sales';const noun={clients:'cliente',products:'produto',contacts:'contato',sales:'venda',deals:'negociação',activities:'atividade',config:'opção de '+catalogs[catalogKind]};$('#form-title').textContent=record?`Editar ${noun[type]} · ${record.name||record.id}`:`Adicionar ${noun[type]}`;$('#save').textContent=type==='sales'?'Confirmar venda':'Salvar '+noun[type];
  let defs=schemas[type];if(type==='config'&&catalogKind==='stages')defs=[...defs,['requiresFollowup','Exige próxima ação e data','boolean']];
  for(const def of defs)$('#record-fields').append(await field(def,record?.[def[0]]??extra[def[0]],false,type==='activities'&&def[0]==='dealId'?()=>$('#record-fields [name=clientId]').value:null));
+ if(type==='products'){
+  const category=$('#record-fields [name=categoryId]');
+  const extraLabel=$('#record-fields [name=otherLabel]');
+  const wrapper=extraLabel.closest('label');
+  const categoryRows=await references('categories');
+  const otherIds=new Set(categoryRows.filter(item=>/^outros?$/i.test(item.name.trim())).map(item=>item.id));
+  const helper=el('small','O produto continuará agrupado na categoria Outros.');wrapper.append(helper);
+  const sync=()=>{
+   const active=otherIds.has(category.value);
+   wrapper.hidden=!active;
+   extraLabel.disabled=!active;
+   if(!active)extraLabel.value='';
+  };
+  category.addEventListener('change',sync);
+  sync();
+ }
  if(type==='activities'&&!record){const client=$('#record-fields [name=clientId]'),deal=$('#record-fields [name=dealId]');client.addEventListener('change',()=>deal.parentElement.refreshReference());if(!client.value)deal.options[0].textContent='Selecione o cliente primeiro';}
  if(type==='deals'){await dealExtraFields(record);initFollowupRequirements();const result=$('#record-fields [name=result]'),reason=$('#record-fields [name=lossReasonId]');const syncReason=()=>{reason.required=result.value==='lost';reason.options[0].disabled=reason.required;reason.parentElement.firstChild.textContent=reason.required?'Motivo da perda *':'Motivo da perda (obrigatório se perdida)';};result.addEventListener('change',syncReason);syncReason();if(record)$('#record-fields [name=clientId]').disabled=true;}
  if(type==='activities'&&record){$('#record-fields [name=clientId]').disabled=true;$('#record-fields [name=dealId]').disabled=true;}
@@ -74,7 +90,15 @@ async function load(){
   for(const record of ['deals','clients'].includes(moduleName)?[]:rows){
    const card=el('article',undefined,'record-card');const heading=el('h2',moduleName==='sales'?record.client?.name||'Venda':record.name);card.append(heading);
    if(moduleName==='clients')card.append(textLine('Empresa',record.company),textLine('Cidade',record.city));
-   if(moduleName==='products')card.append(textLine('Preço padrão',money(record.priceCents)),textLine('Placa',record.generatesPlate?'Aplicável':'Não aplicável'));
+   if(moduleName==='products'){
+    if(record.otherLabel)card.append(textLine('Identificação (Outros)',record.otherLabel));
+    if(record.description){
+     const description=textLine('Descrição',record.description);
+     description.classList.add('product-description');
+     card.append(description);
+    }
+    card.append(textLine('Preço padrão',money(record.priceCents)),textLine('Placa',record.generatesPlate?'Aplicável':'Não aplicável'));
+   }
    if(moduleName==='sales')card.append(textLine('Data',record.soldAt.split('-').reverse().join('/')),stateLine('Situação',record.status==='confirmed'?'Confirmada':'Cancelada',record.status==='confirmed'?'success':'danger'),textLine('Valor',money(record.totalCents)));
    if(moduleName==='activities'){card.append(textLine('Cliente',record.client?.name),textLine('Tipo',record.type?.name),textLine('Prevista',record.dueDate.split('-').reverse().join('/')),stateLine('Situação',...activityState(record)));if(record.note){const note=textLine('Observação',record.note);note.className='truncate-url';note.title=record.note;card.append(note);}}
    if(moduleName==='config'){card.append(textLine('Ordem',String(record.position)));if(/^#[0-9a-f]{6}$/i.test(record.color||'')){const dot=el('span',undefined,'status-color');dot.style.backgroundColor=record.color;dot.setAttribute('aria-label','Cor configurada');card.append(dot);}}
@@ -188,7 +212,7 @@ function clearModuleFilters(){
  history.replaceState(null,'','/manage?module='+moduleName);document.querySelectorAll('.route-filter').forEach(n=>n.remove());page=0;load();
 }
 function groupEditorFields(type){
- const groups={clients:[['Identificação',['name','company','phone']],['Classificação e atendimento',['segmentId','sourceId','ownerId','enabled']],['Endereço e documento',['city','state','address','cnpj']]],products:[['Identificação',['name','categoryId','typeId']],['Venda e disponibilidade',['priceCents','generatesPlate','enabled']]],contacts:[['Identificação e contato',['name','whatsapp','phone','email','enabled']],['Outros canais',['instagram','website']]],deals:[['Negociação',['clientId','name','estimatedCents','ownerId','stageId','result','lossReasonId']],['Próxima ação e tags',['nextName','nextDate','nextType','dealTags']]],activities:[['Atividade',['clientId','typeId','name','dueDate']],['Vínculos e observações',['dealId','ownerId','note','enabled']]]};
+ const groups={clients:[['Identificação',['name','company','phone']],['Classificação e atendimento',['segmentId','sourceId','ownerId','enabled']],['Endereço e documento',['city','state','address','cnpj']]],products:[['Identificação',['name','categoryId','otherLabel','typeId','description']],['Venda e disponibilidade',['priceCents','generatesPlate','enabled']]],contacts:[['Identificação e contato',['name','whatsapp','phone','email','enabled']],['Outros canais',['instagram','website']]],deals:[['Negociação',['clientId','name','estimatedCents','ownerId','stageId','result','lossReasonId']],['Próxima ação e tags',['nextName','nextDate','nextType','dealTags']]],activities:[['Atividade',['clientId','typeId','name','dueDate']],['Vínculos e observações',['dealId','ownerId','note','enabled']]]};
  const container=$('#record-fields');const labels=[...container.children];container.classList.toggle('grouped-fields',!!groups[type]);
  if(groups[type])for(const [title,names] of groups[type]){const section=el('fieldset',undefined,'form-section');section.append(el('legend',title));const grid=el('div',undefined,'form-grid');grid.append(...labels.filter(label=>names.includes(label.querySelector('[name]')?.name)));section.append(grid);container.append(section);}
  const hint=el('p','* Campos obrigatórios. As demais informações podem ser preenchidas depois.','muted wide');container.prepend(hint);
