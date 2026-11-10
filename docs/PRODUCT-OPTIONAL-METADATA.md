@@ -3,7 +3,7 @@
 ## Decisão de modelagem
 A categoria do produto continua sendo `categoryId`. O catálogo padrão inclui `Outro`. Não criamos novos registros em `product_categories` para nomes informados pelo usuário.
 
-A migração `20261110165000_product_optional_metadata.sql` adiciona à tabela `products`:
+A migração `20261110200707_product_optional_metadata.sql` adiciona à tabela `products`:
 - `otherLabel`: texto opcional de até 160 caracteres, exibido apenas ao escolher a categoria existente Outro/Outros.
 - `description`: texto opcional de até 2000 caracteres, com múltiplas linhas.
 
@@ -23,7 +23,7 @@ Ambas as colunas permitem NULL; produtos antigos não precisam de backfill.
 - Não altera a tabela `sale_items`, nem o snapshot histórico de vendas, nem qualquer rota QR/NFC.
 
 ## Implantação
-**Obrigatório:** aplicar a migração do Supabase antes de publicar a nova versão do backend/frontend. Se os arquivos forem publicados primeiro, o PostgREST rejeitará os novos campos por coluna inexistente.
+**Confirmado:** migração `product_optional_metadata` aplicada no Supabase KTIVAR sob a versão `20261110200707`, com as colunas verificadas. A migração foi realizada antes do merge/deploy da aplicação. Se os arquivos forem publicados primeiro, o PostgREST rejeitará os novos campos por coluna inexistente.
 
 Usar o mecanismo de migrações já adotado no projeto e confirmar aplicação no banco de destino. Não fazer migração manual não rastreada.
 
