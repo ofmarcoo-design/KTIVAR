@@ -3,7 +3,7 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const catalogs={segments:'client_segments',sources:'client_sources',tags:'tags',categories:'product_categories',types:'product_types','activity-types':'activity_types','loss-reasons':'loss_reasons',stages:'crm_stages'};
 const fields={
  clients:{name:['text',160,true],company:['text',160],phone:['text',160],segmentId:['uuid',null,true],sourceId:['uuid',null,true],ownerId:['uuid'],city:['text',160],state:['state'],address:['text',500],cnpj:['text',30],enabled:['boolean']},
- products:{name:['text',160,true],categoryId:['uuid',null,true],typeId:['uuid',null,true],priceCents:['integer',1000000000],generatesPlate:['boolean'],enabled:['boolean']},
+ products:{name:['text',160,true],categoryId:['uuid',null,true],otherLabel:['text',160],description:['text',2000],typeId:['uuid',null,true],priceCents:['integer',1000000000],generatesPlate:['boolean'],enabled:['boolean']},
  contacts:{clientId:['uuid',null,true],name:['text',160,true],phone:['text',160],whatsapp:['text',160],email:['email'],instagram:['text',300],website:['url'],enabled:['boolean']}
 };
 const catalogFields={name:['text',100,true],color:['color',null,true],position:['integer',100000,true],enabled:['boolean',null,true]};
@@ -40,7 +40,20 @@ function registerWorkspace(api,supabase){
   }));
   router.get(route+'/:id',guarded(async(req,res)=>{if(!uuid.test(req.params.id))throw invalid();const rows=await db(req,`${table}?${new URLSearchParams({select:selection,id:`eq.${req.params.id}`,limit:'1'})}`);if(!rows.length)return res.status(404).json({error:'Registro não encontrado.'});res.json(rows[0]);}));
   for(const method of ['post','patch'])router[method](method==='post'?route:route+'/:id',guarded(async(req,res)=>{
-   const values=validate(req.body,schema);const q=new URLSearchParams({select:'*'});
+   const values=validate(req.body,schema);
+   if(table==='products'){
+    // Only the existing Outro(s) category accepts the optional custom label.
+    // Keep the FK category intact so existing category filters always work.
+    const categoryId=values.categoryId;
+    if(!categoryId)throw invalid('Selecione a categoria do produto.');
+    const categories=await db(req,'product_categories?'+new URLSearchParams({select:'id,name',id:'eq.'+categoryId,limit:'1'}));
+    if(!categories.length)throw invalid('Categoria de produto inválida.');
+    const isOther=/^outros?$/i.test(categories[0].name.trim());
+    if(!isOther)values.otherLabel=null;
+    else if(values.otherLabel!==undefined)values.otherLabel=values.otherLabel?.trim()||null;
+    if(values.description!==undefined)values.description=values.description?.trim()||null;
+   }
+   const q=new URLSearchParams({select:'*'});
    if(method==='patch'){if(!uuid.test(req.params.id))throw invalid();if(!Number.isSafeInteger(req.body.revision)||req.body.revision<0)return res.status(428).json({error:'Reabra o registro antes de salvar.'});q.set('id',`eq.${req.params.id}`);q.set('revision',`eq.${req.body.revision}`);}
    const rows=await db(req,`${table}?${q}`,{method:method.toUpperCase(),body:values,prefer:'return=representation'});if(!rows.length)return res.status(409).json({error:'O registro mudou. Reabra antes de salvar.'});res.status(method==='post'?201:200).json(rows[0]);
   }));

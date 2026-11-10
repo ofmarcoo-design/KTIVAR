@@ -1927,3 +1927,18 @@ html[data-theme="dark"] body:not(.analytics-page) #overview-metrics .kpi-icon{
 html[data-theme="dark"] .app-shell .nav-close{background:var(--raised);color:var(--text);border-color:var(--border)}
 html[data-theme="dark"] .app-shell .nav-close:hover{background:var(--ui-surface-hover)}
 html[data-theme="dark"] .app-shell .bottom-nav{background:var(--sidebar);border-color:var(--border)}
+
+/* Optional product metadata: long descriptions remain readable in both themes. */
+.app-shell .product-description{
+ white-space:pre-line;
+ overflow-wrap:anywhere;
+ line-height:1.6;
+ color:var(--secondary);
+}
+.app-shell #record-fields label[hidden]{display:none}
+.app-shell #record-fields textarea[name="description"]{
+ min-height:108px;
+ width:100%;
+ resize:vertical;
+ line-height:1.6;
+}
