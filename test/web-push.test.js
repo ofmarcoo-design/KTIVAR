@@ -41,3 +41,15 @@ test('iOS subscription is initiated in the tap handler without awaiting a fetch'
  assert.match(source,/testBtn\.disabled=!subscribed/);
  assert.doesNotMatch(handler,/Notification\.requestPermission/);
 });
+
+test('completed reminders remain visible and deletions meet KTIVAR JSON contract',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../views/notifications.html'),'utf8');
+ const src=fs.readFileSync(path.join(__dirname,'../public/reminders.js'),'utf8');
+ assert.match(html,/id="reminder-history"/);
+ assert.match(html,/id="reminder-history-count"/);
+ assert.match(src,/\['sent','failed','cancelled'\]/);
+ assert.match(src,/method:'DELETE'/);
+ assert.match(src,/\['GET','HEAD'\]/);
+ assert.match(src,/Content-Type':'application\/json'/);
+ assert.match(src,/Não foi possível excluir/);
+});
