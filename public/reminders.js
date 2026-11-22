@@ -52,7 +52,7 @@
     if(label.length<1||label.length>120||!Number.isFinite(at.getTime())||at.getTime()<=now+5000){setText(message,'Informe um título e um horário futuro válido.');return;}
     if(reminders.filter(x=>!x.done).length>=maxReminders){setText(message,'Limite de 50 lembretes ativos neste dispositivo.');return;}
     reminders.push({id:crypto.randomUUID(),title:label,when:at.toISOString(),done:false});
-    if(persist()){form.reset();render();setText(message,'Lembrete salvo neste dispositivo. Funciona somente enquanto o KTIVAR estiver aberto.');}
+    if(persist()){form.reset();render();setText(message,'Lembrete salvo neste dispositivo. O aviso funciona enquanto esta página estiver aberta.');}
   });
   const state=(el,label,kind)=>{if(!el)return;el.className='state-pill '+(kind==='ok'?'state-good':kind==='bad'?'state-bad':'muted-pill');setText(el,label);};
   async function refreshStatus(){
