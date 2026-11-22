@@ -1,6 +1,10 @@
 name: KTIVAR - Database availability monitor
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ktivar-database-monitor.yml'
   schedule:
     # Three external database-backed checks daily (UTC), away from top of the hour.
     - cron: '17 4,12,20 * * *'
