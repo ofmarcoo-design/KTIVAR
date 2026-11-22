@@ -15,7 +15,7 @@ test('remote reminders use authenticated APIs and describe operating limits',()=
  }
  assert.match(html,/Última execução histórica confirmada/);
  assert.ok(client.includes("request('/api/reminders'"));
- assert.ok(client.includes("sw.pushManager.subscribe("));
+ assert.ok(client.includes("readyRegistration.pushManager.subscribe("));
  assert.ok(client.includes("request('/api/push/subscribe'"));
  assert.doesNotMatch(client,/service_role|sb_secret_|VAPID_PRIVATE/);
 });
