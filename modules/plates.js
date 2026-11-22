@@ -214,6 +214,7 @@ function registerPlates(app) {
   require('./reports').registerReports(api, supabase);
   api.get('/session', (req, res) => res.json({ email: req.authUser.email }));
   api.get('/system', (req,res)=>res.json({node:process.version,version:require('../package.json').version}));
+  require('./automation-status').registerAutomationStatus(api);
   api.post('/logout', async (req, res, next) => {
     try {
       await supabase('/auth/v1/logout?scope=local', { token: req.supabaseToken, method: 'POST' });
