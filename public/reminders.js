@@ -42,8 +42,9 @@
  async function updateStatus(){
   try{
    const d=await request('/api/push/status');
-   subscribed=Boolean(d.subscribed);
-   say(pushMsg,subscribed?'Dispositivo registrado: '+d.deviceCount+' inscrição(ões) na conta.':'Nenhum dispositivo habilitado nesta conta.');
+   const own=await navigator.serviceWorker?.ready?.then(r=>r.pushManager?.getSubscription()).catch(()=>null);
+   subscribed=Boolean(own&&Array.isArray(d.endpoints)&&d.endpoints.includes(own.endpoint));
+   say(pushMsg,subscribed?'Push ativo neste aparelho.':'Ainda não ativo neste aparelho.'+(d.deviceCount?' Sua conta tem '+d.deviceCount+' outro(s) dispositivo(s) registrado(s).':''));
    if(subscribed)pushBtn.textContent='Registrar este dispositivo novamente';
   }catch(e){say(pushMsg,'Status indisponível: '+e.message);}
  }
