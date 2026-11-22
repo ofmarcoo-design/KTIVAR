@@ -14,14 +14,16 @@ function registerWebPush(api,supabase){
  const db=(req,path,options={})=>supabase('/rest/v1/'+path,{token:req.supabaseToken,...options});
  api.get('/push/config',(req,res)=>res.json({publicKey:VAPID_PUBLIC}));
  api.get('/push/status',wrap(async(req,res)=>{
-   const rows=await db(req,'ktivar_push_subscriptions?'+new URLSearchParams({user_id:'eq.'+req.authUser.id,select:'id,created_at',limit:'20'}));
-   res.json({subscribed:rows.length>0,deviceCount:rows.length});
+   const rows=await db(req,'ktivar_push_subscriptions?'+new URLSearchParams({user_id:'eq.'+req.authUser.id,select:'id,endpoint,created_at',limit:'20'}));
+   res.json({deviceCount:rows.length,endpoints:rows.map(x=>x.endpoint)});
  }));
  api.post('/push/subscribe',wrap(async(req,res)=>{
    const sub=req.body||{},endpoint=sub.endpoint,p256dh=sub.keys?.p256dh,authKey=sub.keys?.auth;
    if(!safeEndpoint(endpoint)||typeof p256dh!=='string'||p256dh.length<60||p256dh.length>300||
        typeof authKey!=='string'||authKey.length<12||authKey.length>300)
       return res.status(400).json({error:'Assinatura de notificações inválida.'});
+   const existing=await db(req,'ktivar_push_subscriptions?'+new URLSearchParams({user_id:'eq.'+req.authUser.id,endpoint:'eq.'+endpoint,select:'id'}));
+   if(existing.length)return res.json({ok:true,id:existing[0].id});
    const rows=await db(req,'ktivar_push_subscriptions?select=id',{method:'POST',body:{user_id:req.authUser.id,endpoint,p256dh,auth_key:authKey},prefer:'return=representation'});
    res.status(201).json({ok:true,id:rows[0]?.id||null});
  }));
