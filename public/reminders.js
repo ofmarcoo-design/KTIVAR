@@ -39,43 +39,84 @@
   catch(err){say(msg,err.message);}finally{btn.disabled=false;}
  });
  const installed=window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true;
+ const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+ let readyRegistration=null,publicKey=null,currentSubscription=null;
+ pushBtn.disabled=true;
+ testBtn.disabled=true;
+ const unavailable=reason=>{
+  subscribed=false;
+  pushBtn.disabled=true;
+  testBtn.disabled=true;
+  say(pushMsg,reason);
+ };
  async function updateStatus(){
   try{
    const d=await request('/api/push/status');
-   const own=await navigator.serviceWorker?.ready?.then(r=>r.pushManager?.getSubscription()).catch(()=>null);
-   subscribed=Boolean(own&&Array.isArray(d.endpoints)&&d.endpoints.includes(own.endpoint));
-   say(pushMsg,subscribed?'Push ativo neste aparelho.':'Ainda não ativo neste aparelho.'+(d.deviceCount?' Sua conta tem '+d.deviceCount+' outro(s) dispositivo(s) registrado(s).':''));
-   if(subscribed)pushBtn.textContent='Registrar este dispositivo novamente';
-  }catch(e){say(pushMsg,'Status indisponível: '+e.message);}
+   const endpoints=Array.isArray(d.endpoints)?d.endpoints:[];
+   subscribed=Boolean(currentSubscription&&endpoints.includes(currentSubscription.endpoint));
+   testBtn.disabled=!subscribed;
+   if(subscribed){
+     pushBtn.textContent='Verificar registro deste iPhone';
+     say(pushMsg,'Confirmado pelo servidor: este aparelho está registrado para push. Agora você pode agendar um teste remoto.');
+   }else{
+     pushBtn.textContent='Ativar notificações push';
+     say(pushMsg,'NENHUM PUSH ATIVO NESTE APARELHO. Lembretes podem ser salvos, mas não vão aparecer fora do KTIVAR até ativar. '+(d.deviceCount?'Outros dispositivos registrados: '+d.deviceCount+'.':''));
+   }
+  }catch(e){
+   subscribed=false;testBtn.disabled=true;
+   say(pushMsg,'Não foi possível conferir o registro no servidor: '+e.message);
+  }
  }
- pushBtn.addEventListener('click',async()=>{
+ async function preparePush(){
   if(!window.isSecureContext||!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
-    say(pushMsg,'Este navegador não oferece Web Push. Abra o KTIVAR instalado na Tela de Início do iPhone.');return;
+    unavailable('Web Push indisponível neste navegador. No iPhone, abra o KTIVAR instalado na Tela de Início.');
+    return;
   }
-  if(/iPhone|iPad|iPod/.test(navigator.userAgent)&&!installed){
-    say(pushMsg,'No iPhone, abra pelo ícone instalado na Tela de Início (não pela aba do Safari).');return;
+  if(isIOS&&!installed){
+    unavailable('O Safari em uma aba normal não pode habilitar este push. Abra o KTIVAR pelo ícone instalado na Tela de Início.');
+    return;
   }
+  try {
+   // Preload configuration AND registration before the user tap.
+   // Safari/iOS requires PushManager.subscribe() to run directly from a user gesture.
+   const [config,registration]=await Promise.all([request('/api/push/config'),navigator.serviceWorker.ready]);
+   if(!config.publicKey||!registration.pushManager)throw Error('Service Worker sem PushManager.');
+   publicKey=decode(config.publicKey);
+   readyRegistration=registration;
+   currentSubscription=await registration.pushManager.getSubscription();
+   pushBtn.disabled=false;
+   await updateStatus();
+   if(Notification.permission==='denied'&&!currentSubscription)
+    say(pushMsg,'Notificações bloqueadas pelo iOS. Libere KTIVAR em Ajustes → Notificações e tente novamente.');
+  }catch(e){unavailable('Falha ao preparar Web Push: '+e.message);}
+ }
+ pushBtn.addEventListener('click',()=>{
+  if(!readyRegistration||!publicKey)return;
   pushBtn.disabled=true;
-  try{
-   const perm=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
-   if(perm!=='granted')throw new Error('Permissão não concedida. Verifique Ajustes → Notificações → KTIVAR.');
-   const config=await request('/api/push/config'),sw=await navigator.serviceWorker.ready;
-   let subscription=await sw.pushManager.getSubscription();
-   if(!subscription)subscription=await sw.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decode(config.publicKey)});
-   try{await request('/api/push/subscribe',{method:'POST',body:JSON.stringify(subscription.toJSON())});}
-   catch(error){await subscription.unsubscribe().catch(()=>{});throw error;}
-   subscribed=true;say(pushMsg,'Push habilitado neste dispositivo. Agora programe um teste e feche o KTIVAR.');await updateStatus();
-  }catch(err){say(pushMsg,'Não foi possível ativar: '+err.message);}finally{pushBtn.disabled=false;}
+  // This MUST be invoked synchronously inside the tap callback, not after a fetch,
+  // awaiting the current subscription, or calling Notification.requestPermission().
+  const operation=currentSubscription
+    ? Promise.resolve(currentSubscription)
+    : readyRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:publicKey});
+  operation.then(async subscription=>{
+    currentSubscription=subscription;
+    await request('/api/push/subscribe',{method:'POST',body:JSON.stringify(subscription.toJSON())});
+    await updateStatus();
+  }).catch(error=>{
+    subscribed=false;
+    testBtn.disabled=true;
+    say(pushMsg,'Falha na ativação: '+(error?.message||String(error))+'. Confira as permissões do KTIVAR no iPhone.');
+  }).finally(()=>{pushBtn.disabled=false;});
  });
  testBtn.addEventListener('click',async()=>{
   testBtn.disabled=true;
   try{
-   if(!subscribed)throw new Error('Ative as notificações push neste dispositivo primeiro.');
+   if(!subscribed)throw new Error('Primeiro ative as notificações push e confirme o registro neste aparelho.');
    const due=new Date(Date.now()+120000);
    await create('Teste remoto: KTIVAR funcionando em segundo plano',due);
-   say(pushMsg,'Teste agendado para '+fmt(due)+'. Feche o KTIVAR e bloqueie o iPhone. A entrega pode atrasar.');
+   say(pushMsg,'Teste agendado para '+fmt(due)+'. Agora feche o KTIVAR e bloqueie o iPhone. Aguarde a entrega.');
    await load();
-  }catch(err){say(pushMsg,err.message);}finally{testBtn.disabled=false;}
+  }catch(err){say(pushMsg,err.message);}finally{testBtn.disabled=!subscribed;}
  });
  importBtn.addEventListener('click',async()=>{
   if(!userEmail){say(msg,'Sua sessão precisa estar ativa.');return;}
@@ -95,7 +136,7 @@
  (async()=>{
   try{
    const session=await request('/api/session');userEmail=typeof session.email==='string'?session.email:null;
-   await Promise.all([load(),updateStatus()]);
+   await Promise.all([load(),preparePush()]);
   }catch(e){say(msg,'Sessão indisponível: '+e.message);}
  })();
 })();
