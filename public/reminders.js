@@ -29,7 +29,7 @@
    del.setAttribute('aria-label','Excluir lembrete: '+r.title);
    del.addEventListener('click',async()=>{
     del.disabled=true;
-    try{await request('/api/reminders/'+encodeURIComponent(r.id),{method:'DELETE'});await load();say(msg,'Lembrete excluído.');}
+    try{await request('/api/reminders/'+encodeURIComponent(r.id),{method:'DELETE',headers:{'X-KTIVAR-Request':'same-origin'}});await load();say(msg,'Lembrete excluído.');}
     catch(e){say(msg,'Não foi possível excluir: '+e.message);del.disabled=false;}
    });
    info.append(title,date);li.append(info,del);return li;
