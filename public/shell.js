@@ -87,7 +87,8 @@
     }
     wrap.append(group);return wrap;
    };
-   panel.append(settings,themeControl(),logout);
+   const notifications=document.createElement('a');notifications.href='/notifications';notifications.textContent='Notificações';
+   panel.append(settings,notifications,themeControl(),logout);
    menu.append(summary,panel);account.replaceChildren(menu);
    const isSettings=location.pathname==='/manage'&&new URLSearchParams(location.search).get('module')==='config';
    const card=isSettings?document.createElement('section'):null;

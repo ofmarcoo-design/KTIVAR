@@ -166,6 +166,7 @@ function registerPlates(app) {
   app.get('/plates', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/plates.html')));
   app.get('/reports', authenticate, (req,res)=>res.sendFile(path.join(__dirname,'../views/reports.html')));
   app.get('/manage', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/manage.html')));
+  app.get('/notifications', authenticate, (req, res) => res.sendFile(path.join(__dirname, '../views/notifications.html')));
   app.get(['/dashboard','/analytics'],authenticate,(req,res)=>res.sendFile(path.join(__dirname,'../views/dashboard.html')));
   app.get('/portal',(req,res,next)=>authenticate(req,res,next,true),(req,res)=>res.sendFile(path.join(__dirname,'../views/client-portal.html')));
   const api = Router();
