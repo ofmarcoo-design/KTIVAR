@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notificações · KTIVAR</title><link rel="icon" href="/assets/brand/ktivar-symbol.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/app.css"><script src="/assets/theme.js"></script>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0F172A">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="KTIVAR">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/pwa/apple-touch-icon.png">
+<script src="/assets/pwa.js" defer></script><script src="/assets/notifications.js" defer></script></head>
+<body><main style="max-width:650px;margin:0 auto;padding:clamp(20px,6vw,46px);min-height:100vh">
+  <p><a href="/dashboard">← Voltar ao KTIVAR</a></p>
+  <h1>Notificações no iPhone</h1>
+  <p>Teste de compatibilidade do dispositivo. Nenhuma notificação comercial ou alerta remoto será enviado nesta etapa.</p>
+  <section aria-label="Teste de notificação" style="padding:22px;border:1px solid #68758a66;border-radius:18px">
+   <h2>Teste imediato</h2>
+   <p>Instale o KTIVAR na Tela de Início do iPhone, abra pelo ícone e toque no botão abaixo. O sistema solicitará sua permissão e tentará mostrar uma notificação local de demonstração.</p>
+   <button type="button" id="notify-test">Autorizar e enviar teste</button>
+   <p id="notify-result" role="status" aria-live="polite"></p>
+   <p id="notify-support"></p>
+  </section>
+  <p style="margin-top:24px">Este teste não configura push remoto. Receber alertas com o aplicativo fechado exige registrar o dispositivo e configurar um serviço de envio autenticado, que será desenvolvido separadamente após a validação.</p>
+</main></body></html>
