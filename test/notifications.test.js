@@ -12,7 +12,9 @@ test('notification page uses user action, manifest, PWA and explanatory disclaim
  assert.match(html,/role="status"/);
  assert.match(html,/manifest.webmanifest/);
  assert.match(html,/assets\/pwa.js/);
- assert.match(html,/Web Push/);
+ assert.match(html,/Push remoto/);
+ assert.match(html,/id="push-enable"/);
+ assert.match(html,/id="push-test"/);
  assert.match(html,/id="reminder-form"/);
  assert.match(html,/id="automation-refresh"/);
  assert.match(html,/id="monitor-state"/);

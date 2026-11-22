@@ -5,18 +5,18 @@ const path=require('node:path');
 const {latestMonitorRun,registerAutomationStatus}=require('../modules/automation-status');
 
 const client=fs.readFileSync(path.join(__dirname,'../public/reminders.js'),'utf8');
-test('reminders do not promise closed-app alarms or expose private data in HTML',()=>{
+test('remote reminders use authenticated APIs and describe operating limits',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../views/notifications.html'),'utf8');
- assert.match(html,/não toca com o app fechado/);
- assert.match(html,/somente neste navegador/);
+ assert.match(html,/mesmo com o KTIVAR fechado/);
+ assert.match(html,/Push remoto/);
  for(const view of ['dashboard','manage','plates','reports']){
   const file=fs.readFileSync(path.join(__dirname,'../views',view+'.html'),'utf8');
-  assert.ok(file.includes('/assets/reminder-alerts.js'));
+  assert.ok(!file.includes('/assets/reminder-alerts.js'),'old page-only reminder polling must be removed');
  }
- assert.ok(fs.readFileSync(path.join(__dirname,'../public/reminder-alerts.js'),'utf8').includes('document.visibilityState'));
  assert.match(html,/Última execução histórica confirmada/);
- assert.match(client,/setInterval\(scan,15000\)/);
- assert.match(client,/fetch\('\/api\/session'/);
+ assert.ok(client.includes("request('/api/reminders'"));
+ assert.ok(client.includes("sw.pushManager.subscribe("));
+ assert.ok(client.includes("request('/api/push/subscribe'"));
  assert.doesNotMatch(client,/service_role|sb_secret_|VAPID_PRIVATE/);
 });
 test('GitHub monitor status handles success without modifying anything',async()=>{

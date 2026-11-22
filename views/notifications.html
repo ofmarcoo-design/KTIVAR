@@ -9,17 +9,23 @@
 </head><body><main class="notification-center">
 <nav aria-label="Retorno"><a href="/dashboard" class="back-link">← Voltar ao KTIVAR</a></nav>
 <header class="notifications-heading"><div><p class="section-eyebrow">SISTEMA / CENTRAL</p><h1>Notificações</h1><p class="muted">Seus lembretes e as verificações automáticas do KTIVAR, em um só lugar.</p></div><span class="heading-symbol" aria-hidden="true">◷</span></header>
+<section class="notification-card notification-settings" aria-labelledby="push-title">
+  <div class="settings-copy"><p class="section-eyebrow">IPHONE / SEGUNDO PLANO</p><h2 id="push-title">Receber com o aplicativo fechado</h2><p>Ative uma vez no KTIVAR instalado na Tela de Início. O iPhone precisa permitir notificações.</p></div>
+  <div class="settings-actions"><button type="button" id="push-enable">Ativar notificações push</button><p id="push-state" role="status" aria-live="polite" class="feedback">Verificando dispositivo…</p>
+  <button type="button" class="secondary" id="push-test">Agendar teste para daqui a 2 minutos</button>
+  <button type="button" class="secondary" id="import-local">Importar lembretes anteriores deste aparelho</button></div>
+</section>
 <div class="notification-grid">
 <section class="notification-card" aria-labelledby="reminders-title">
-<div class="section-title"><div><p class="section-eyebrow">PESSOAL</p><h2 id="reminders-title">Lembretes</h2></div><span class="subtle-pill">Neste dispositivo</span></div>
-<p class="section-description">Programe um horário e receba um aviso enquanto o KTIVAR estiver aberto em uma das páginas principais. Não é um alarme do iOS e não toca com o app fechado.</p>
+<div class="section-title"><div><p class="section-eyebrow">PESSOAL</p><h2 id="reminders-title">Lembretes</h2></div><span class="subtle-pill">Sincronizado na conta</span></div>
+<p class="section-description">Programe um lembrete e receba uma notificação mesmo com o KTIVAR fechado, após autorizar o envio neste iPhone. O horário de entrega pode sofrer pequenos atrasos.</p>
 <form id="reminder-form"><label for="reminder-title">O que lembrar?</label><input id="reminder-title" name="title" placeholder="Ex.: Conferir proposta comercial" maxlength="120" autocomplete="off" required>
 <label for="reminder-date">Data e horário</label><input id="reminder-date" name="when" type="datetime-local" required>
 <button type="submit" id="reminder-add">Criar lembrete</button></form>
 <p id="reminder-feedback" role="status" aria-live="polite" class="feedback"></p>
 <div class="list-header"><h3>Programados</h3><span id="reminder-count" class="subtle-pill">0</span></div>
 <ul id="reminder-list" class="reminder-list" aria-label="Seus lembretes"><li class="empty-placeholder">Carregando…</li></ul>
-<p class="footnote">Salvos somente neste navegador/aplicativo, sem sincronizar com outros dispositivos. Quando o app reabrir, lembretes vencidos aparecerão como pendentes.</p>
+<p class="footnote">Os lembretes são armazenados na sua conta. Para recebê-los no iPhone fechado, habilite as notificações push neste aparelho. Os avisos dependem da conexão e da disponibilidade do serviço.</p>
 </section>
 <section class="notification-card" aria-labelledby="automations-title">
 <div class="section-title"><div><p class="section-eyebrow">INFRAESTRUTURA</p><h2 id="automations-title">Automações existentes</h2></div><span class="subtle-pill">Somente leitura</span></div>
@@ -35,5 +41,5 @@
 </section>
 </div>
 <section class="notification-card notification-settings" aria-labelledby="device-title"><div class="settings-copy"><p class="section-eyebrow">DISPOSITIVO</p><h2 id="device-title">Teste de notificação</h2><p>Verifique se este aparelho permite mostrar avisos. O teste é imediato; não configura envio remoto.</p></div><div class="settings-actions"><button type="button" id="notify-test" class="secondary">Autorizar e enviar teste</button><p id="notify-support" class="footnote"></p><p id="notify-result" role="status" aria-live="polite" class="feedback"></p></div></section>
-<p class="notification-disclaimer">Para receber lembretes pontualmente com o aplicativo fechado, será necessário configurar um agendador externo e Web Push com inscrição autorizada do iPhone. Esta página não anuncia essa função como ativa.</p>
+<p class="notification-disclaimer">Push remoto: a entrega depende do sistema operacional, conexão e infraestrutura do Supabase. Não substitui um despertador nativo para horários críticos. Projeto gratuito pode ser suspenso por inatividade.</p>
 </main></body></html>

@@ -1,5 +1,5 @@
 // Installation-only worker. Increment when changing this layer's behavior.
-const PWA_VERSION = 'ktivar-install-v1';
+const PWA_VERSION = 'ktivar-install-v2';
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 // Explicit network pass-through for compatibility with browsers requiring a fetch handler.
@@ -15,4 +15,15 @@ self.addEventListener('notificationclick', event => {
     if(target){await target.focus();return;}
     await self.clients.openWindow(url);
   }));
+});
+
+// Background delivery: invoked by the browser push service even when the app has no open tab.
+self.addEventListener('push', event => {
+ let payload={};
+ try {payload=event.data?.json()||{};} catch {payload={};}
+ const body=typeof payload.body==='string'?payload.body.slice(0,180):'Você tem um novo lembrete.';
+ event.waitUntil(self.registration.showNotification('KTIVAR · Lembrete', {
+  body,icon:'/assets/pwa/icon-192.png',badge:'/assets/pwa/icon-192.png',
+  tag:'ktivar-push-'+Date.now(),data:{url:'/notifications'}
+ }));
 });
