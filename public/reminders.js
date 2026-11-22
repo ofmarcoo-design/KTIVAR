@@ -94,7 +94,7 @@
   if(!readyRegistration||!publicKey)return;
   pushBtn.disabled=true;
   // This MUST be invoked synchronously inside the tap callback, not after a fetch,
-  // awaiting the current subscription, or calling Notification.requestPermission().
+  // awaiting the current subscription, or triggering another permission flow.
   const operation=currentSubscription
     ? Promise.resolve(currentSubscription)
     : readyRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:publicKey});
