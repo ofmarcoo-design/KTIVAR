@@ -10,6 +10,9 @@ async function database({beforeMigration}={}) {
     grant execute on function auth.uid() to anon,authenticated;`);
   for(const file of readdirSync(path.join(__dirname,'../supabase/migrations')).filter(x=>x.endsWith('.sql')).sort()) {
     if(beforeMigration&&file>=beforeMigration)continue;
+    // pg_net is supplied by hosted Supabase, not by the embedded PGlite fixture.
+    // Skip only its installation; all application tables, RLS and RPCs still run.
+    if(file==='20261122045549_enable_pg_net_for_ktivar_push_scheduler.sql')continue;
     try { await db.exec(readFileSync(path.join(__dirname,'../supabase/migrations',file),'utf8')); }
     catch(error) {throw new Error(`${file}: ${error.message}`,{cause:error});}
   }
