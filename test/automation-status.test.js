@@ -9,6 +9,11 @@ test('reminders do not promise closed-app alarms or expose private data in HTML'
  const html=fs.readFileSync(path.join(__dirname,'../views/notifications.html'),'utf8');
  assert.match(html,/não toca com o app fechado/);
  assert.match(html,/somente neste navegador/);
+ for(const view of ['dashboard','manage','plates','reports']){
+  const file=fs.readFileSync(path.join(__dirname,'../views',view+'.html'),'utf8');
+  assert.match(file,/assets\\/reminder-alerts\\.js/);
+ }
+ assert.match(fs.readFileSync(path.join(__dirname,'../public/reminder-alerts.js'),'utf8'),/document\\.visibilityState/);
  assert.match(html,/Última execução histórica confirmada/);
  assert.match(client,/setInterval\(scan,15000\)/);
  assert.match(client,/fetch\('\/api\/session'/);
