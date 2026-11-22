@@ -1,0 +1,77 @@
+name: KTIVAR - Database availability monitor
+
+on:
+  schedule:
+    # Three external database-backed checks daily (UTC), away from top of the hour.
+    - cron: '17 4,12,20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ktivar-database-monitor
+  cancel-in-progress: false
+
+jobs:
+  check-database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check app and Supabase database
+        id: probe
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://ktivar.kimzan.com.br/health/database?monitor=$(date -u +%s)"
+          echo "Checking KTIVAR's existing, database-backed health endpoint"
+          curl --silent --show-error --fail-with-body --location \
+            --connect-timeout 10 --max-time 25 \
+            --retry 2 --retry-delay 10 --retry-all-errors \
+            -H 'Cache-Control: no-cache' \
+            "$url" -o /tmp/ktivar-health.json
+          jq -e '.app == "online" and .database == "online"' /tmp/ktivar-health.json > /dev/null
+          echo "KTIVAR application and database responded correctly"
+          echo "### KTIVAR database: healthy" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record outage or recovery in GitHub Issues
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECK_RESULT: ${{ steps.probe.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="[KTIVAR monitor] Banco de dados indisponível"
+          url="https://ktivar.kimzan.com.br/health/database"
+          issue_number="$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+            --jq '.[] | select(.pull_request == null and .title == "[KTIVAR monitor] Banco de dados indisponível") | .number' | head -n 1)"
+          if [[ "$CHECK_RESULT" == "success" ]]; then
+            if [[ -n "$issue_number" ]]; then
+              gh issue comment "$issue_number" --body "✅ Serviço restabelecido; verificação externa aprovada em $(date -u +'%Y-%m-%d %H:%M UTC'). Execução: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              gh issue close "$issue_number" --reason completed
+            fi
+          else
+            body="A consulta externa à rota \`$url\` falhou após as tentativas automáticas em $(date -u +'%Y-%m-%d %H:%M UTC').
+
+          O GitHub Actions está fora do Supabase. Esta falha pode indicar indisponibilidade do site, da API, do banco ou de rede; não identifica isoladamente a causa.
+
+          Verificar:
+          - $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          - https://supabase.com/dashboard/project/owovkiijgiaujsirctgq
+          - $url
+
+          A tarefa interna \`pg_cron\` e a tabela \`ktre_on\` não foram alteradas."
+            if [[ -z "$issue_number" ]]; then
+              gh issue create --title "$title" --body "$body"
+            else
+              gh issue comment "$issue_number" --body "⚠️ Falha persistente em $(date -u +'%Y-%m-%d %H:%M UTC'). Execução: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            fi
+            echo "### KTIVAR database: unavailable" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Mark the run failed when service is unavailable
+        if: steps.probe.outcome != 'success'
+        run: exit 1
