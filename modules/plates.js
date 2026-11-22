@@ -174,8 +174,18 @@ function registerPlates(app) {
     res.set('Cache-Control', 'no-store');
     if (!['GET', 'HEAD'].includes(req.method)) {
       let origin;
-      try { origin = new URL(req.get('origin')); } catch { return res.status(403).json({ error: 'Origem da requisição inválida.' }); }
-      if (origin.host !== req.get('host') || !['http:','https:'].includes(origin.protocol) || (secureRequest(req)&&origin.protocol!=='https:') || !req.is('application/json')) return res.status(403).json({ error: 'Origem da requisição inválida.' });
+      const originHeader = req.get('origin');
+      const fetchSite = req.get('sec-fetch-site');
+      // Some installed iOS PWAs omit Origin on a same-origin DELETE fetch.
+      // Allow only this authenticated reminder deletion with a non-simple custom header;
+      // cross-site JavaScript cannot send that header without a CORS preflight.
+      const reminderDelete = req.method === 'DELETE' && /^\\/reminders\\/[^/]+$/.test(req.path);
+      const safeMissingOrigin = !originHeader && reminderDelete && req.get('x-ktivar-request') === 'same-origin' && (!fetchSite || fetchSite === 'same-origin');
+      if (!req.is('application/json')) return res.status(403).json({ error: 'Origem da requisição inválida.' });
+      if (!safeMissingOrigin) {
+        try { origin = new URL(originHeader); } catch { return res.status(403).json({ error: 'Origem da requisição inválida.' }); }
+        if (origin.host !== req.get('host') || !['http:','https:'].includes(origin.protocol) || (secureRequest(req)&&origin.protocol!=='https:') || fetchSite === 'cross-site') return res.status(403).json({ error: 'Origem da requisição inválida.' });
+      }
     }
     next();
   });
