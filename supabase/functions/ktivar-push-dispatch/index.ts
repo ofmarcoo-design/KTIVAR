@@ -25,6 +25,22 @@ Deno.serve(async req=>{
  const hash=hex(await crypto.subtle.digest('SHA-256',encoder.encode(token)));
  if(hash!==config.dispatch_token_sha256)return new Response('Unauthorized',{status:401});
  push.setVapidDetails('https://ktivar.kimzan.com.br',config.vapid_public,config.vapid_private);
+ // Authenticated encryption-only smoke test: no push is actually sent.
+ const input=await req.json().catch(()=>({}));
+ if(input?.selftest===true){
+  try{
+   const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+   const raw=new Uint8Array(await crypto.subtle.exportKey('raw',pair.publicKey));
+   const auth=crypto.getRandomValues(new Uint8Array(16));
+   const base64url=(x:Uint8Array)=>btoa(String.fromCharCode(...x)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+   const details=push.generateRequestDetails({
+    endpoint:'https://web.push.apple.com/ktivar-crypto-test',
+    keys:{p256dh:base64url(raw),auth:base64url(auth)}
+   },JSON.stringify({title:'KTIVAR',body:'Criptografia de teste'}),{TTL:60});
+   return Response.json({ok:true,encryptionReady:!!details?.body,vapidReady:!!details?.headers?.Authorization});
+  }catch(e){ return Response.json({ok:false,encryptionReady:false,reason:String((e as Error).message||e).slice(0,200)},{status:500});}
+ }
+
  const {data:rows,error:claimError}=await client.rpc('ktivar_claim_due_reminders',{p_limit:20});
  if(claimError)return new Response(JSON.stringify({error:'Unable to claim reminders'}),{status:503,headers:{'content-type':'application/json'}});
  let processed=0,sent=0,retried=0;
