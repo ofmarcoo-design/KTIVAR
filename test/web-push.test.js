@@ -28,3 +28,16 @@ test('service worker shows remote notifications without cache or route rewriting
  assert.match(worker,/registration.showNotification/);
  assert.ok(!worker.includes('respondWith('));
 });
+
+test('iOS subscription is initiated in the tap handler without awaiting a fetch',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../public/reminders.js'),'utf8');
+ assert.match(source,/const \[config,registration\]=await Promise\.all/);
+ assert.match(source,/pushBtn\.addEventListener\('click',\(\)=>\{/);
+ const handler=source.split("pushBtn.addEventListener('click',()=>{")[1].split("testBtn.addEventListener(")[0];
+ const subscription=handler.indexOf('readyRegistration.pushManager.subscribe(');
+ assert.ok(subscription>0);
+ assert.ok(!handler.slice(0,subscription).includes('await '),'iPhone subscription must be initiated synchronously');
+ assert.match(handler,/await request\('\/api\/push\/subscribe'/);
+ assert.match(source,/testBtn\.disabled=!subscribed/);
+ assert.doesNotMatch(handler,/Notification\.requestPermission/);
+});
