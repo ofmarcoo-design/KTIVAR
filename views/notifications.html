@@ -1,21 +1,39 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Notificações · KTIVAR</title><link rel="icon" href="/assets/brand/ktivar-symbol.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/app.css"><script src="/assets/theme.js"></script>
-<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#0F172A">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="KTIVAR">
+<title>Central de notificações · KTIVAR</title><link rel="icon" type="image/svg+xml" href="/assets/brand/ktivar-symbol.svg">
+<link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/notifications.css">
+<script src="/assets/theme.js"></script><link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0F172A"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="KTIVAR">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/pwa/apple-touch-icon.png">
-<script src="/assets/pwa.js" defer></script><script src="/assets/notifications.js" defer></script></head>
-<body><main style="max-width:650px;margin:0 auto;padding:clamp(20px,6vw,46px);min-height:100vh">
-  <p><a href="/dashboard">← Voltar ao KTIVAR</a></p>
-  <h1>Notificações no iPhone</h1>
-  <p>Teste de compatibilidade do dispositivo. Nenhuma notificação comercial ou alerta remoto será enviado nesta etapa.</p>
-  <section aria-label="Teste de notificação" style="padding:22px;border:1px solid #68758a66;border-radius:18px">
-   <h2>Teste imediato</h2>
-   <p>Instale o KTIVAR na Tela de Início do iPhone, abra pelo ícone e toque no botão abaixo. O sistema solicitará sua permissão e tentará mostrar uma notificação local de demonstração.</p>
-   <button type="button" id="notify-test">Autorizar e enviar teste</button>
-   <p id="notify-result" role="status" aria-live="polite"></p>
-   <p id="notify-support"></p>
-  </section>
-  <p style="margin-top:24px">Este teste não configura push remoto. Receber alertas com o aplicativo fechado exige registrar o dispositivo e configurar um serviço de envio autenticado, que será desenvolvido separadamente após a validação.</p>
+<script src="/assets/pwa.js" defer></script><script src="/assets/notifications.js" defer></script><script src="/assets/reminders.js" defer></script>
+</head><body><main class="notification-center">
+<nav aria-label="Retorno"><a href="/dashboard" class="back-link">← Voltar ao KTIVAR</a></nav>
+<header class="notifications-heading"><div><p class="section-eyebrow">SISTEMA / CENTRAL</p><h1>Notificações</h1><p class="muted">Seus lembretes e as verificações automáticas do KTIVAR, em um só lugar.</p></div><span class="heading-symbol" aria-hidden="true">◷</span></header>
+<div class="notification-grid">
+<section class="notification-card" aria-labelledby="reminders-title">
+<div class="section-title"><div><p class="section-eyebrow">PESSOAL</p><h2 id="reminders-title">Lembretes</h2></div><span class="subtle-pill">Neste dispositivo</span></div>
+<p class="section-description">Programe um horário e receba um aviso enquanto o KTIVAR estiver aberto em uma das páginas principais. Não é um alarme do iOS e não toca com o app fechado.</p>
+<form id="reminder-form"><label for="reminder-title">O que lembrar?</label><input id="reminder-title" name="title" placeholder="Ex.: Conferir proposta comercial" maxlength="120" autocomplete="off" required>
+<label for="reminder-date">Data e horário</label><input id="reminder-date" name="when" type="datetime-local" required>
+<button type="submit" id="reminder-add">Criar lembrete</button></form>
+<p id="reminder-feedback" role="status" aria-live="polite" class="feedback"></p>
+<div class="list-header"><h3>Programados</h3><span id="reminder-count" class="subtle-pill">0</span></div>
+<ul id="reminder-list" class="reminder-list" aria-label="Seus lembretes"><li class="empty-placeholder">Carregando…</li></ul>
+<p class="footnote">Salvos somente neste navegador/aplicativo, sem sincronizar com outros dispositivos. Quando o app reabrir, lembretes vencidos aparecerão como pendentes.</p>
+</section>
+<section class="notification-card" aria-labelledby="automations-title">
+<div class="section-title"><div><p class="section-eyebrow">INFRAESTRUTURA</p><h2 id="automations-title">Automações existentes</h2></div><span class="subtle-pill">Somente leitura</span></div>
+<p class="section-description">Estas rotinas já existiam. Aqui você acompanha sua configuração sem alterar agendamentos.</p>
+<article class="automation-item"><div class="automation-top"><div><h3>Monitor externo do banco</h3><p>GitHub Actions · 3 verificações diárias</p></div><span id="monitor-state" class="state-pill">Consultando…</span></div>
+<p id="monitor-last" class="automation-detail">Obtendo a execução mais recente…</p>
+<a href="https://github.com/ofmarcoo-design/KTIVAR/actions/workflows/ktivar-database-monitor.yml" target="_blank" rel="noopener noreferrer">Ver histórico de execuções ↗</a></article>
+<article class="automation-item"><div class="automation-top"><div><h3>Gravação interna na ktre_on</h3><p>Supabase pg_cron · job 2</p></div><span class="state-pill muted-pill">Configurada</span></div>
+<p class="automation-detail">Expressão verificada: <code>0 0 */5 * *</code>. Executa nos dias 1, 6, 11, 16, 21, 26 e 31 do mês, quando o banco está disponível.</p>
+<p class="footnote">Última execução histórica confirmada: 16/11/2026. O estado atual desse cron não é consultado por esta tela.</p></article>
+<div class="automation-footer"><span id="database-state" class="state-pill muted-pill">Verificando API…</span><button type="button" id="automation-refresh" class="secondary">Atualizar status</button></div>
+<p id="automation-feedback" role="status" aria-live="polite" class="footnote"></p>
+</section>
+</div>
+<section class="notification-card notification-settings" aria-labelledby="device-title"><div class="settings-copy"><p class="section-eyebrow">DISPOSITIVO</p><h2 id="device-title">Teste de notificação</h2><p>Verifique se este aparelho permite mostrar avisos. O teste é imediato; não configura envio remoto.</p></div><div class="settings-actions"><button type="button" id="notify-test" class="secondary">Autorizar e enviar teste</button><p id="notify-support" class="footnote"></p><p id="notify-result" role="status" aria-live="polite" class="feedback"></p></div></section>
+<p class="notification-disclaimer">Para receber lembretes pontualmente com o aplicativo fechado, será necessário configurar um agendador externo e Web Push com inscrição autorizada do iPhone. Esta página não anuncia essa função como ativa.</p>
 </main></body></html>
