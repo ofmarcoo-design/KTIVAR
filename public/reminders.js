@@ -1,11 +1,11 @@
 (()=>{
- const $=id=>document.getElementById(id), form=$('reminder-form'),list=$('reminder-list');
- if(!form||!list)return;
+ const $=id=>document.getElementById(id), form=$('reminder-form'),list=$('reminder-list'),history=$('reminder-history');
+ if(!form||!list||!history)return;
  const msg=$('reminder-feedback'),pushMsg=$('push-state'),pushBtn=$('push-enable'),testBtn=$('push-test'),importBtn=$('import-local');
  let userEmail=null,subscribed=false,loading=false;
  const say=(el,s)=>{if(el)el.textContent=s;};
  const request=async(path,opts={})=>{
-  const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...opts,headers:{...(opts.body?{'Content-Type':'application/json'}:{}),...opts.headers}});
+  const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...opts,headers:{...(!['GET','HEAD'].includes((opts.method||'GET').toUpperCase())?{'Content-Type':'application/json'}:{}),...opts.headers}});
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(data.error||('Erro HTTP '+response.status));
   return data;
@@ -13,17 +13,31 @@
  const fmt=s=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(s));
  const decode=v=>{const s=v.replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s.padEnd(Math.ceil(s.length/4)*4,'='));return Uint8Array.from(raw,c=>c.charCodeAt(0));};
  function render(rows){
-  const items=rows.filter(x=>x.status==='pending'||x.status==='processing'||x.status==='failed').sort((a,b)=>a.due_at.localeCompare(b.due_at));
-  say($('reminder-count'),String(items.length));list.replaceChildren();
-  if(!items.length){const li=document.createElement('li');li.className='empty-placeholder';li.textContent='Nenhum lembrete pendente.';list.append(li);return;}
-  for(const r of items){
+  const active=rows.filter(x=>x.status==='pending'||x.status==='processing').sort((a,b)=>a.due_at.localeCompare(b.due_at));
+  const completed=rows.filter(x=>['sent','failed','cancelled'].includes(x.status)).sort((a,b)=>b.due_at.localeCompare(a.due_at));
+  say($('reminder-count'),String(active.length));
+  say($('reminder-history-count'),String(completed.length));
+  list.replaceChildren();history.replaceChildren();
+  const itemNode=r=>{
    const li=document.createElement('li'),info=document.createElement('div'),title=document.createElement('div'),date=document.createElement('div'),del=document.createElement('button');
    title.className='reminder-name';title.textContent=r.title;
-   date.className='reminder-time';date.textContent=fmt(r.due_at)+(r.status==='failed'?' · Falha no envio':r.status==='processing'?' · Enviando…':'');
+   date.className='reminder-time';
+   const labels={pending:'Programado',processing:'Enviando',sent:'Enviado',failed:'Falha no envio',cancelled:'Cancelado'};
+   const overdue=r.status==='pending'&&Date.parse(r.due_at)<Date.now();
+   date.textContent=fmt(r.due_at)+' · '+(overdue?'Aguardando envio':labels[r.status]||r.status);
    del.type='button';del.className='secondary';del.textContent='Excluir';
-   del.addEventListener('click',async()=>{del.disabled=true;try{await request('/api/reminders/'+encodeURIComponent(r.id),{method:'DELETE'});await load();say(msg,'Lembrete excluído.');}catch(e){say(msg,e.message);del.disabled=false;}});
-   info.append(title,date);li.append(info,del);list.append(li);
-  }
+   del.setAttribute('aria-label','Excluir lembrete: '+r.title);
+   del.addEventListener('click',async()=>{
+    del.disabled=true;
+    try{await request('/api/reminders/'+encodeURIComponent(r.id),{method:'DELETE'});await load();say(msg,'Lembrete excluído.');}
+    catch(e){say(msg,'Não foi possível excluir: '+e.message);del.disabled=false;}
+   });
+   info.append(title,date);li.append(info,del);return li;
+  };
+  if(active.length)active.forEach(r=>list.append(itemNode(r)));
+  else {const li=document.createElement('li');li.className='empty-placeholder';li.textContent='Nenhum lembrete programado.';list.append(li);}
+  if(completed.length)completed.forEach(r=>history.append(itemNode(r)));
+  else {const li=document.createElement('li');li.className='empty-placeholder';li.textContent='Nenhum lembrete encerrado.';history.append(li);}
  }
  async function load(){
   try{render(await request('/api/reminders'));}catch(e){say(msg,'Não foi possível carregar os lembretes: '+e.message);}
