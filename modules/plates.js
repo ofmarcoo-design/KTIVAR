@@ -179,7 +179,7 @@ function registerPlates(app) {
       // Some installed iOS PWAs omit Origin on a same-origin DELETE fetch.
       // Allow only this authenticated reminder deletion with a non-simple custom header;
       // cross-site JavaScript cannot send that header without a CORS preflight.
-      const reminderDelete = req.method === 'DELETE' && /^\\/reminders\\/[^/]+$/.test(req.path);
+      const reminderDelete = req.method === 'DELETE' && /^\/reminders\/[^/]+$/.test(req.path);
       const safeMissingOrigin = !originHeader && reminderDelete && req.get('x-ktivar-request') === 'same-origin' && (!fetchSite || fetchSite === 'same-origin');
       if (!req.is('application/json')) return res.status(403).json({ error: 'Origem da requisição inválida.' });
       if (!safeMissingOrigin) {
