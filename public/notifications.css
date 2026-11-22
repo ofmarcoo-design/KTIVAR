@@ -1,0 +1,26 @@
+.notification-center{max-width:1120px;margin:0 auto;padding:clamp(20px,4vw,44px);padding-bottom:100px;color:var(--text,#17233a)}
+.notification-center .back-link{display:inline-block;margin-bottom:32px}
+.notifications-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:28px}
+.notifications-heading h1{font-size:clamp(30px,4vw,46px);margin:4px 0 10px;letter-spacing:-.035em}
+.notifications-heading p{margin:0;line-height:1.55}
+.heading-symbol{font-size:40px;color:#3474e8;background:#3474e812;border:1px solid #3474e82b;border-radius:18px;padding:12px 20px}
+.section-eyebrow{color:#6184ac;font-weight:750;letter-spacing:.12em;font-size:11px;margin:0 0 5px}
+.notification-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.notification-card{border:1px solid #8293b533;border-radius:20px;padding:clamp(18px,2.5vw,28px);background:var(--surface,#fff);box-shadow:0 5px 28px #10224d08}
+.section-title,.automation-top,.automation-footer,.list-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.notification-card h2{font-size:21px;letter-spacing:-.02em;margin:0}
+.notification-card h3{font-size:15px;margin:0}.section-description,.automation-detail,.settings-copy p{line-height:1.6}
+.section-description{margin:16px 0 22px}.subtle-pill,.state-pill{font-size:12px;border-radius:50px;padding:5px 10px;background:#7895b51b;border:1px solid #7a94b82b;white-space:nowrap;color:inherit}
+.state-good{color:#197e51;background:#16845412;border-color:#16845428}.state-bad{color:#ad3b35;background:#bf242412;border-color:#bf24242b}
+.muted-pill{opacity:.75}.notification-center form{display:grid;gap:10px}.notification-center label{font-size:13px;font-weight:700;margin-top:7px}
+.notification-center input{width:100%;max-width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #7895b56b;background:var(--surface,#fff);color:inherit;font:inherit}
+.notification-center button{cursor:pointer;padding:12px 16px;border-radius:11px;font:inherit;font-weight:650}.notification-center button:disabled{cursor:not-allowed;opacity:.5}
+.notification-center form button{margin-top:7px;background:#2869de;color:white;border:1px solid #2869de}
+.notification-center button.secondary{background:transparent;border:1px solid #7895b585;color:inherit}.feedback{font-size:13px;min-height:18px;margin:14px 0}
+.list-header{margin-top:28px;border-bottom:1px solid #8293b533;padding-bottom:12px}.reminder-list{list-style:none;padding:0;margin:0}
+.reminder-list li{padding:14px 0;border-bottom:1px solid #8293b527;display:flex;justify-content:space-between;align-items:center;gap:12px}.reminder-name{font-weight:650;overflow-wrap:anywhere}.reminder-time{font-size:12px;opacity:.75;margin-top:3px}
+.reminder-list .empty-placeholder{opacity:.7;font-size:13px}.reminder-list button{font-size:12px;padding:8px 10px}
+.automation-item{border:1px solid #8293b533;border-radius:14px;padding:16px;margin:15px 0}.automation-item h3{font-size:15px}.automation-item p{margin:7px 0;font-size:13px;line-height:1.55}.automation-item a{font-size:13px}
+.automation-footer{margin-top:22px}.automation-detail code{font-size:12px}.footnote,.notification-disclaimer{font-size:12px;line-height:1.6;opacity:.72}
+.notification-settings{display:flex;justify-content:space-between;align-items:center;gap:25px;margin-top:20px}.settings-copy{flex:1}.settings-actions{flex:1}.settings-actions p{margin:8px 0}
+.notification-disclaimer{padding:12px 2px}@media(max-width:780px){.notification-grid{grid-template-columns:1fr}.notification-settings{display:block}.settings-actions{margin-top:18px}.heading-symbol{display:none}.notification-center{padding:20px 18px 90px}}
